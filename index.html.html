@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>СИМУЛЯТОР СТРИМЕРА 3D v13.0 — ECHO OF FATES</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; user-select:none; -webkit-tap-highlight-color:transparent; }
+body { min-height:100vh; font-family:'Segoe UI', Arial, sans-serif; color:#fff; overflow:hidden; background:#0a0a15; }
+#game3d { position:fixed; inset:0; z-index:1; }
+#game3d canvas { display:block; touch-action:none; }
+.splash { position:fixed; inset:0; background:radial-gradient(circle at center, #1a1a2e 0%, #0a0a15 100%); display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px; z-index:9999; transition:opacity 0.8s ease; }
+.splash.hidden { opacity:0; pointer-events:none; }
+.splash-logo { font-size:56px; font-weight:900; letter-spacing:10px; background:linear-gradient(135deg,#667eea,#764ba2,#ff6b35); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:12px; animation:logoPulse 3s ease-in-out infinite; }
+@keyframes logoPulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.05);} }
+.splash-sub { font-size:14px; color:#a0a0b0; letter-spacing:6px; margin-bottom:40px; text-transform:uppercase; }
+.splash-hint { font-size:16px; color:#667eea; font-weight:600; padding:14px 32px; border:2px solid #667eea; border-radius:14px; animation:blink 2s ease-in-out infinite; cursor:pointer; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
+.main-menu { position:fixed; inset:0; background:radial-gradient(circle at center,#1a1a2e 0%,#0a0a15 100%); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:9998; padding:20px; }
+.main-menu.open { display:flex; }
+.menu-logo { font-size:48px; font-weight:900; letter-spacing:8px; background:linear-gradient(135deg,#667eea,#764ba2,#ff6b35); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:8px; }
+.menu-sub { font-size:12px; color:#a0a0b0; letter-spacing:4px; margin-bottom:30px; text-transform:uppercase; }
+.menu-title { font-size:20px; font-weight:bold; margin-bottom:16px; }
+.slots { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; width:100%; max-width:900px; margin-bottom:24px; }
+.slot { background:rgba(15,15,30,0.85); border:2px solid rgba(102,126,234,0.5); border-radius:14px; padding:16px; cursor:pointer; transition:all 0.2s; position:relative; }
+.slot:hover { border-color:#667eea; background:rgba(102,126,234,0.15); transform:translateY(-4px); }
+.slot-num { font-size:11px; color:#a0a0b0; text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+.slot-name { font-size:16px; font-weight:bold; margin-bottom:6px; }
+.slot-info { font-size:11px; color:#c0c0d0; line-height:1.6; }
+.menu-btn { padding:12px 24px; background:linear-gradient(135deg,#667eea,#764ba2); border:2px solid rgba(255,255,255,0.2); border-radius:12px; color:#fff; font-size:14px; font-weight:bold; cursor:pointer; }
+.difficulty-screen { position:fixed; inset:0; background:radial-gradient(circle at center,#1a1a2e 0%,#0a0a15 100%); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:9997; padding:20px; }
+.difficulty-screen.open { display:flex; }
+.diff-title { font-size:28px; font-weight:900; margin-bottom:8px; }
+.diff-sub { font-size:14px; color:#a0a0b0; margin-bottom:30px; }
+.diff-options { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; width:100%; max-width:900px; margin-bottom:24px; }
+.diff-option { background:rgba(15,15,30,0.85); border:2px solid rgba(102,126,234,0.5); border-radius:16px; padding:20px; cursor:pointer; text-align:center; }
+.diff-option:hover { transform:translateY(-4px); border-color:#667eea; }
+.diff-icon { font-size:48px; margin-bottom:10px; }
+.diff-name { font-size:18px; font-weight:bold; margin-bottom:6px; }
+.diff-desc { font-size:12px; color:#a0a0b0; line-height:1.6; }
+.hud { position:fixed; z-index:10; pointer-events:none; }
+.hud-top { top:8px; left:8px; right:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:6px; flex-wrap:wrap; }
+.hud-box { background:rgba(15,15,30,0.85); border:2px solid rgba(102,126,234,0.5); border-radius:12px; padding:6px 10px; pointer-events:auto; min-width:55px; }
+.hud-box .label { font-size:8px; color:#a0a0b0; text-transform:uppercase; }
+.hud-box .value { font-size:13px; font-weight:900; }
+.hud-box .value.money { color:#64ff96; }
+.hud-box .value.subs { color:#ff6496; }
+.hud-box .value.energy { color:#64c8ff; }
+.hud-box .value.level { color:#c864ff; }
+.hud-box .value.rep { color:#ffd700; }
+.hud-box .value.rating { color:#ffd700; }
+.hud-bottom { position:fixed; bottom:8px; left:8px; right:8px; z-index:60; display:flex; gap:4px; flex-wrap:wrap; justify-content:center; pointer-events:auto; }
+.btn { padding:8px 12px; background:linear-gradient(135deg,#667eea,#764ba2); border:2px solid rgba(255,255,255,0.2); border-radius:10px; color:#fff; font-size:11px; font-weight:bold; cursor:pointer; white-space:nowrap; }
+.btn:hover { transform:translateY(-2px); }
+.btn:disabled { opacity:0.4; cursor:not-allowed; }
+.btn.stream { background:linear-gradient(135deg,#ff4444,#c82020); }
+.btn.stream.active { background:linear-gradient(135deg,#00c853,#008a3a); animation:pulseBtn 1.5s infinite; }
+@keyframes pulseBtn { 0%,100%{box-shadow:0 0 15px rgba(0,200,83,0.6);} 50%{box-shadow:0 0 35px rgba(0,200,83,1);} }
+.btn.gold { background:linear-gradient(135deg,#ffd700,#ff9500); color:#1a1a2e; }
+.btn.purple { background:linear-gradient(135deg,#c864ff,#8020c8); }
+.btn.green { background:linear-gradient(135deg,#64ff96,#00a050); color:#0a1520; }
+.btn.blue { background:linear-gradient(135deg,#64c8ff,#1e8cdc); }
+.btn.pink { background:linear-gradient(135deg,#ff6496,#c82064); }
+.btn.red { background:linear-gradient(135deg,#ff5050,#c82020); }
+.btn.gray { background:linear-gradient(135deg,#8a8a9a,#5a5a6a); }
+.watermark { position:fixed; bottom:10px; right:12px; font-size:12px; font-weight:600; letter-spacing:3px; color:rgba(255,255,255,0.35); z-index:200; cursor:pointer; padding:6px 10px; border-radius:8px; }
+.toast { position:fixed; top:70px; left:50%; transform:translateX(-50%) translateY(-20px); background:rgba(15,15,30,0.95); border:2px solid #667eea; border-radius:12px; padding:10px 20px; font-size:13px; font-weight:bold; z-index:100; opacity:0; pointer-events:none; transition:all 0.3s ease; max-width:90vw; text-align:center; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.toast.money { border-color:#64ff96; }
+.toast.subs { border-color:#ff6496; }
+.toast.error { border-color:#ff4444; }
+.toast.win { border-color:#ffd700; }
+.chat-box { position:fixed; bottom:80px; right:12px; width:240px; max-height:220px; background:rgba(15,15,30,0.92); border:2px solid rgba(102,126,234,0.6); border-radius:12px; padding:8px; z-index:55; display:none; flex-direction:column; }
+.chat-box.show { display:flex; }
+.chat-title { font-size:10px; color:#a0a0b0; text-transform:uppercase; letter-spacing:2px; margin-bottom:6px; display:flex; justify-content:space-between; }
+.chat-messages { flex:1; overflow-y:auto; font-size:11px; line-height:1.5; display:flex; flex-direction:column; gap:3px; max-height:180px; }
+.chat-msg { padding:3px 6px; background:rgba(255,255,255,0.04); border-radius:5px; word-wrap:break-word; }
+.chat-msg .nick { font-weight:bold; color:#64c8ff; }
+.chat-msg .nick.vip { color:#ffd700; }
+.personal-chat { position:fixed; bottom:80px; left:12px; width:320px; max-height:440px; background:rgba(10,10,20,0.98); border:2px solid #ff6496; border-radius:16px; z-index:56; display:none; flex-direction:column; }
+.personal-chat.open { display:flex; }
+.personal-chat-header { padding:10px 14px; background:rgba(255,100,150,0.2); border-bottom:1px solid rgba(255,100,150,0.4); font-size:13px; font-weight:bold; color:#ff6496; display:flex; justify-content:space-between; border-radius:16px 16px 0 0; }
+.personal-chat-messages { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:6px; max-height:320px; min-height:200px; }
+.personal-msg { display:flex; }
+.personal-msg.me { justify-content:flex-end; }
+.personal-msg.her { justify-content:flex-start; }
+.personal-bubble { max-width:80%; padding:8px 12px; border-radius:12px; font-size:12px; line-height:1.5; word-wrap:break-word; }
+.personal-msg.me .personal-bubble { background:linear-gradient(135deg,#667eea,#764ba2); }
+.personal-msg.her .personal-bubble { background:rgba(255,100,150,0.15); border:1px solid rgba(255,100,150,0.3); }
+.personal-chat-input { display:flex; gap:4px; padding:8px; border-top:1px solid rgba(255,100,150,0.3); }
+.personal-chat-input input { flex:1; padding:8px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,100,150,0.4); border-radius:8px; color:#fff; font-size:12px; outline:none; }
+.story-notification { position:fixed; top:80px; left:-450px; width:360px; max-width:90vw; background:linear-gradient(135deg,#1a0a2e,#0a0a1e); border:3px solid #ff4444; border-radius:16px; box-shadow:0 0 40px rgba(255,68,68,0.6); z-index:9000; transition:left 0.8s cubic-bezier(0.68,-0.55,0.27,1.55); overflow:hidden; }
+.story-notification.show { left:16px; }
+.story-notif-header { display:flex; justify-content:space-between; padding:10px 14px; background:rgba(255,68,68,0.3); font-size:12px; font-weight:900; color:#ff8888; }
+.story-notif-close { cursor:pointer; font-size:16px; color:#fff; }
+.story-notif-body { padding:20px; text-align:center; }
+.story-notif-icon { font-size:56px; margin-bottom:10px; animation:notifPulse 1.5s infinite; }
+@keyframes notifPulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.1);} }
+.story-notif-title { font-size:22px; font-weight:900; letter-spacing:3px; margin-bottom:8px; text-shadow:0 0 20px rgba(255,68,68,0.8); }
+.story-notif-desc { font-size:13px; color:#c0c0d0; font-style:italic; margin-bottom:16px; }
+.story-notif-btn { background:linear-gradient(135deg,#ff4444,#c82020); border:2px solid rgba(255,255,255,0.3); color:#fff; padding:12px 20px; border-radius:10px; font-size:13px; font-weight:900; cursor:pointer; width:100%; }
+.white-flash { position:fixed; inset:0; background:#fff; z-index:8999; pointer-events:none; opacity:0; }
+.white-flash.active { animation:whiteFlash 0.4s; }
+@keyframes whiteFlash { 0%{opacity:0;} 20%{opacity:1;} 100%{opacity:0;} }
+.donate-popup { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.3); background:linear-gradient(135deg,#ffd700,#ff9500,#ff6b35); border:4px solid #fff; border-radius:20px; padding:20px 28px; text-align:center; z-index:6000; opacity:0; pointer-events:none; transition:all 0.5s cubic-bezier(0.68,-0.55,0.27,1.55); max-width:340px; }
+.donate-popup.show { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
+.donate-icon { font-size:42px; margin-bottom:6px; }
+.donate-title { font-size:18px; font-weight:900; margin-bottom:6px; }
+.donate-name { font-size:14px; font-weight:bold; }
+.donate-amount { font-size:26px; font-weight:900; margin-bottom:6px; }
+.donate-timer { font-size:18px; font-weight:900; color:#1a1a2e; margin-bottom:8px; font-family:monospace; }
+.donate-request { font-size:12px; color:#1a1a2e; font-weight:bold; background:rgba(255,255,255,0.7); padding:6px 10px; border-radius:8px; margin-bottom:8px; }
+.donate-msg { font-size:11px; font-style:italic; margin-bottom:10px; }
+.donate-buttons { display:flex; gap:8px; justify-content:center; margin-top:8px; }
+.donate-ok { background:#64ff96; border:none; color:#0a1520; padding:10px 20px; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer; flex:1; }
+.donate-decline { background:rgba(255,80,80,0.9); border:none; color:#fff; padding:10px 20px; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer; flex:1; }
+.cutscene-overlay { position:fixed; inset:0; background:linear-gradient(135deg,#0a0a1e,#1a0a2e,#0a0a15); z-index:7000; display:none; flex-direction:column; }
+.cutscene-overlay.open { display:flex; }
+.cutscene-scene { flex:1; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.cutscene-bg { position:absolute; inset:0; opacity:0.4; background:radial-gradient(circle at center,#667eea,transparent); }
+.cutscene-char { position:absolute; font-size:100px; bottom:10%; animation:charBounce 2s ease-in-out infinite; }
+.cutscene-char.left { left:15%; }
+.cutscene-char.right { right:15%; }
+@keyframes charBounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+.cutscene-dialog { background:rgba(15,15,30,0.98); border-top:3px solid #667eea; padding:20px; min-height:160px; }
+.cutscene-speaker { font-size:14px; color:#667eea; font-weight:bold; margin-bottom:8px; text-transform:uppercase; }
+.cutscene-text { font-size:15px; line-height:1.6; margin-bottom:14px; min-height:50px; }
+.cutscene-buttons { display:flex; gap:8px; flex-wrap:wrap; }
+.cutscene-btn { padding:10px 20px; background:linear-gradient(135deg,#667eea,#764ba2); border:none; color:#fff; border-radius:10px; font-size:13px; font-weight:bold; cursor:pointer; }
+.cutscene-overlay.glitch-active .cutscene-bg { animation:memoryGlitch 0.8s; }
+@keyframes memoryGlitch { 0%,100%{transform:translate(0,0);filter:hue-rotate(0deg);} 50%{transform:translate(-10px,5px);filter:hue-rotate(180deg);} }
+.cutscene-overlay.tragic-mode { background:linear-gradient(135deg,#0a0a0e,#0e0a1e,#050508); }
+.panel-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; display:none; align-items:center; justify-content:center; padding:10px; }
+.panel-overlay.open { display:flex; }
+.panel { background:rgba(15,15,30,0.98); border:2px solid rgba(102,126,234,0.6); border-radius:16px; width:100%; max-width:640px; max-height:90vh; display:flex; flex-direction:column; }
+.panel-header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.1); font-size:16px; font-weight:bold; color:#667eea; }
+.panel-close { cursor:pointer; font-size:20px; color:#a0a0b0; width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:6px; }
+.panel-body { padding:12px; overflow-y:auto; }
+.upgrade-item { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:10px; margin-bottom:6px; gap:8px; }
+.upgrade-item.equipped { border-color:#64ff96; background:rgba(100,255,150,0.08); }
+.upgrade-info { flex:1; }
+.upgrade-name { font-size:13px; font-weight:bold; margin-bottom:2px; }
+.upgrade-desc { font-size:10px; color:#a0a0b0; }
+.upgrade-btn { padding:6px 10px; background:linear-gradient(135deg,#64ff96,#00a050); border:none; color:#0a1520; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; min-width:70px; }
+.upgrade-btn:disabled { background:rgba(255,255,255,0.1); color:#606070; cursor:not-allowed; }
+.upgrade-btn.buy { background:linear-gradient(135deg,#ffd700,#ff9500); color:#1a1a2e; }
+.upgrade-btn.equipped { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; }
+.section-title { font-size:11px; color:#a0a0b0; text-transform:uppercase; letter-spacing:2px; margin:10px 0 6px; }
+.stat-bar { margin-bottom:8px; }
+.stat-bar-label { display:flex; justify-content:space-between; font-size:11px; color:#c0c0d0; margin-bottom:3px; }
+.stat-bar-bg { height:6px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden; }
+.stat-bar-fill { height:100%; border-radius:3px; }
+.input-field { width:100%; padding:10px 12px; background:rgba(0,0,0,0.3); border:2px solid rgba(102,126,234,0.4); border-radius:8px; color:#fff; font-size:14px; font-weight:bold; outline:none; margin-bottom:8px; }
+.minigame-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:500; display:none; align-items:center; justify-content:center; padding:10px; }
+.minigame-overlay.open { display:flex; }
+.minigame-box { background:rgba(15,15,30,0.98); border:3px solid #ffd700; border-radius:16px; width:100%; max-width:440px; padding:14px; text-align:center; max-height:90vh; overflow-y:auto; }
+.mg-title { font-size:16px; font-weight:900; color:#ffd700; margin-bottom:6px; }
+.mg-desc { font-size:12px; color:#a0a0b0; margin-bottom:10px; }
+.mg-timer { font-size:20px; font-weight:900; color:#64ff96; margin-bottom:8px; font-family:monospace; }
+.mg-board { display:grid; gap:4px; margin-bottom:12px; justify-content:center; }
+.mg-cell { background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:22px; font-weight:900; }
+.mg-cell.correct { background:linear-gradient(135deg,#64ff96,#00a050); }
+.mg-cell.wrong { background:linear-gradient(135deg,#ff5050,#c82020); }
+.mg-progress { font-size:12px; color:#c0c0d0; margin-bottom:6px; }
+.mg-close-btn { background:linear-gradient(135deg,#ff5050,#c82020); border:none; color:#fff; padding:8px 20px; border-radius:8px; font-size:12px; font-weight:bold; cursor:pointer; }
+.pc-screen { position:fixed; inset:0; background:linear-gradient(135deg,#0a0a1e,#1a1a3e); z-index:4000; display:none; flex-direction:column; }
+.pc-screen.open { display:flex; }
+.pc-topbar { display:flex; justify-content:space-between; align-items:center; padding:6px 12px; background:rgba(0,0,0,0.4); border-bottom:1px solid rgba(102,126,234,0.3); font-size:11px; }
+.pc-desktop { flex:1; padding:12px; overflow-y:auto; }
+.pc-icons { display:grid; grid-template-columns:repeat(auto-fill,minmax(85px,1fr)); gap:10px; max-width:900px; }
+.pc-icon { display:flex; flex-direction:column; align-items:center; padding:12px 8px; background:rgba(102,126,234,0.1); border:2px solid rgba(102,126,234,0.3); border-radius:10px; cursor:pointer; }
+.pc-icon:hover { background:rgba(102,126,234,0.3); }
+.pc-icon-img { font-size:30px; }
+.pc-icon-name { font-size:10px; font-weight:bold; }
+.pc-window { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:92%; max-width:680px; max-height:82vh; background:rgba(15,15,30,0.98); border:2px solid rgba(102,126,234,0.6); border-radius:12px; display:none; flex-direction:column; z-index:10; }
+.pc-window.open { display:flex; }
+.pc-window-header { display:flex; justify-content:space-between; padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.1); background:rgba(102,126,234,0.15); font-size:13px; font-weight:bold; }
+.pc-window-body { padding:12px; overflow-y:auto; max-height:65vh; }
+.admin-login-box, .admin-panel { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(15,15,30,0.98); border:2px solid rgba(255,50,50,0.6); border-radius:16px; z-index:2000; display:none; flex-direction:column; padding:20px; max-height:85vh; overflow-y:auto; }
+.admin-login-box.open, .admin-panel.open { display:flex; }
+.admin-login-box { width:90%; max-width:320px; }
+.admin-panel { width:90%; max-width:480px; }
+.admin-input { width:100%; padding:10px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:6px; color:#fff; font-size:14px; outline:none; margin-bottom:8px; text-align:center; letter-spacing:3px; }
+.admin-buttons { display:flex; gap:6px; }
+.admin-buttons button { flex:1; padding:8px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; font-size:12px; }
+.admin-section { margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); }
+.admin-section-title { font-size:12px; color:#ff6b6b; font-weight:bold; margin-bottom:8px; }
+.admin-field input { width:100%; padding:6px 8px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:5px; color:#fff; font-size:13px; outline:none; margin-bottom:4px; }
+.admin-add-btn { width:100%; padding:8px; background:linear-gradient(135deg,#00f000,#00a000); border:none; color:#fff; border-radius:6px; font-weight:bold; cursor:pointer; font-size:12px; }
+.guide-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:6500; display:none; align-items:center; justify-content:center; padding:20px; }
+.guide-overlay.open { display:flex; }
+.guide-box { background:rgba(15,15,30,0.98); border:2px solid #ffd700; border-radius:16px; padding:24px; max-width:500px; text-align:center; }
+.guide-icon { font-size:60px; margin-bottom:10px; }
+.guide-title { font-size:20px; font-weight:900; color:#ffd700; margin-bottom:12px; }
+.guide-text { font-size:14px; color:#c0c0d0; line-height:1.7; margin-bottom:16px; }
+.guide-nav { display:flex; gap:8px; justify-content:center; }
+.guide-nav button { padding:10px 24px; border-radius:10px; border:none; font-weight:bold; cursor:pointer; font-size:14px; }
+.guide-prev { background:rgba(255,255,255,0.1); color:#fff; }
+.guide-next { background:linear-gradient(135deg,#ffd700,#ff9500); color:#1a1a2e; }
+.guide-skip { background:rgba(255,255,255,0.1); color:#a0a0b0; }
+.custom-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:10px; }
+.custom-opt { aspect-ratio:1; background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.15); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer; }
+.custom-opt.selected { background:linear-gradient(135deg,rgba(102,126,234,0.5),rgba(118,75,162,0.5)); border-color:#667eea; }
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:rgba(255,255,255,0.05); }
+::-webkit-scrollbar-thumb { background:rgba(102,126,234,0.5); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<div id="game3d"></div>
+
+<div class="splash" id="splash">
+    <div class="splash-logo">СТРИМЕР</div>
+    <div class="splash-sub">ECHO OF FATES · v13.0</div>
+    <div class="splash-hint" onclick="hideSplash()">Нажми, чтобы начать</div>
+</div>
+
+<div class="main-menu" id="mainMenu">
+    <div class="menu-logo">СТРИМЕР</div>
+    <div class="menu-sub">ECHO OF FATES · v13.0</div>
+    <div class="menu-title">Выбери слот сохранения</div>
+    <div class="slots" id="slotsContainer"></div>
+    <div class="menu-buttons"><button class="menu-btn" onclick="closeMainMenu()">← Назад</button></div>
+</div>
+
+<div class="difficulty-screen" id="difficultyScreen">
+    <div class="diff-title">🎯 Выбери сложность</div>
+    <div class="diff-sub">Это повлияет на весь прогресс</div>
+    <div class="diff-options">
+        <div class="diff-option" onclick="selectDifficulty('easy')"><div class="diff-icon">😊</div><div class="diff-name">Легко</div><div class="diff-desc">Доход ×2 · Старт: 5000💰</div></div>
+        <div class="diff-option" onclick="selectDifficulty('normal')"><div class="diff-icon">🙂</div><div class="diff-name">Норма</div><div class="diff-desc">Доход ×1 · Старт: 1000💰</div></div>
+        <div class="diff-option" onclick="selectDifficulty('hard')"><div class="diff-icon">😠</div><div class="diff-name">Сложно</div><div class="diff-desc">Доход ×0.6 · Старт: 500💰</div></div>
+        <div class="diff-option" onclick="selectDifficulty('hell')"><div class="diff-icon">💀</div><div class="diff-name">Хардкор</div><div class="diff-desc">Доход ×0.3 · Старт: 100💰</div></div>
+    </div>
+    <div class="menu-buttons"><button class="menu-btn" onclick="closeDifficultyScreen()">← Назад</button></div>
+</div>
+
+<div class="hud hud-top" id="hudTop" style="display:none;">
+    <div style="display:flex; gap:5px; flex-wrap:wrap;">
+        <div class="hud-box"><div class="label">🎭 Стример</div><div class="value" id="hudNick">Стример</div></div>
+        <div class="hud-box"><div class="label">🏅 Ур.</div><div class="value level" id="hudLevel">1</div></div>
+        <div class="hud-box"><div class="label">⭐ Рейтинг</div><div class="value rating" id="hudRating">C</div></div>
+        <div class="hud-box"><div class="label">💰 Деньги</div><div class="value money" id="hudMoney">1000</div></div>
+        <div class="hud-box"><div class="label">👥 Подп.</div><div class="value subs" id="hudSubs">0</div></div>
+        <div class="hud-box"><div class="label">⭐ Реп.</div><div class="value rep" id="hudRep">100</div></div>
+        <div class="hud-box"><div class="label">⚡ Энерг.</div><div class="value energy" id="hudEnergy">100</div></div>
+        <div class="hud-box"><div class="label">🍔 Голод</div><div class="value" id="hudHunger" style="color:#ffb450;">100</div></div>
+        <div class="hud-box"><div class="label">😴 Сон</div><div class="value" id="hudSleep" style="color:#c864ff;">100</div></div>
+    </div>
+</div>
+
+<div class="hud hud-bottom" id="hudBottom" style="display:none;">
+    <button class="btn stream" id="streamBtn" onclick="toggleStream()">🔴 СТРИМ</button>
+    <button class="btn purple" onclick="openPanel('upgrades')">⬆️ Прокачка</button>
+    <button class="btn gold" onclick="openPanel('custom')">🎨 Персонаж</button>
+    <button class="btn blue" onclick="openPanel('shop')">🛒 Магазин</button>
+    <button class="btn green" onclick="openPanel('life')">🏠 Жизнь</button>
+    <button class="btn" style="background:linear-gradient(135deg,#ff4444,#c82020);" onclick="openPanel('story')">📖 Сюжет</button>
+    <button class="btn" style="background:linear-gradient(135deg,#64c8ff,#1e8cdc);" onclick="openPanel('profile')">👤 Профиль</button>
+    <button class="btn pink" onclick="openPersonalChat()">💌 Чат</button>
+    <button class="btn green" onclick="manualSave()">💾</button>
+    <button class="btn" style="background:linear-gradient(135deg,#64c8ff,#1e8cdc);" onclick="toggleChat()">💬</button>
+</div>
+
+<div class="chat-box" id="chatBox">
+    <div class="chat-title">💬 <b>ЧАТ</b> <span style="cursor:pointer;" onclick="toggleChat()">✕</span></div>
+    <div class="chat-messages" id="chatMessages"></div>
+</div>
+
+<div class="personal-chat" id="personalChatBox">
+    <div class="personal-chat-header"><span>💌 Эхо_10</span><span style="cursor:pointer;" onclick="closePersonalChat()">✕</span></div>
+    <div class="personal-chat-messages" id="personalChatMessages"></div>
+    <div class="personal-chat-input">
+        <input type="text" id="personalChatInput" placeholder="Написать..." onkeydown="if(event.key==='Enter'){sendPersonalMessage(this.value);this.value='';}">
+        <button class="btn gold" onclick="sendPersonalMessage(document.getElementById('personalChatInput').value);document.getElementById('personalChatInput').value='';">📤</button>
+    </div>
+</div>
+
+<div class="watermark" id="watermark" onclick="watermarkClick()">che_vam</div>
+<div class="toast" id="toast"></div>
+
+<div class="donate-popup" id="donatePopup">
+    <div class="donate-icon">💜</div>
+    <div class="donate-title">ДОНАТ!</div>
+    <div class="donate-name" id="donateName">Зритель</div>
+    <div class="donate-amount" id="donateAmount">+0 💰</div>
+    <div class="donate-timer" id="donateTimer">⏱ 60</div>
+    <div class="donate-request" id="donateRequest">Просьба</div>
+    <div class="donate-msg" id="donateMsg">Сообщение</div>
+    <div class="donate-buttons" id="donateButtons"></div>
+</div>
+
+<div class="story-notification" id="storyNotification">
+    <div class="story-notif-header"><span>🔔 НОВОЕ СЮЖЕТНОЕ ЗАДАНИЕ</span><span class="story-notif-close" onclick="closeStoryNotification()">✕</span></div>
+    <div class="story-notif-body">
+        <div class="story-notif-icon" id="storyNotifIcon">❤️</div>
+        <div class="story-notif-title" id="storyNotifTitle">ВОСКРЕШЕНИЕ</div>
+        <div class="story-notif-desc" id="storyNotifDesc">«Она нашла способ вернуть тебя.»</div>
+        <button class="story-notif-btn" onclick="openStoryFromNotification()">📖 Основное сюжетное задание</button>
+    </div>
+</div>
+
+<div class="white-flash" id="whiteFlash"></div>
+
+<div class="cutscene-overlay" id="cutsceneOverlay">
+    <div class="cutscene-scene">
+        <div class="cutscene-bg"></div>
+        <div class="cutscene-char left" id="cutsceneCharLeft"></div>
+        <div class="cutscene-char right" id="cutsceneCharRight"></div>
+    </div>
+    <div class="cutscene-dialog">
+        <div class="cutscene-speaker" id="cutsceneSpeaker">Голос</div>
+        <div class="cutscene-text" id="cutsceneText">...</div>
+        <div class="cutscene-buttons" id="cutsceneButtons"></div>
+    </div>
+</div>
+
+<div class="panel-overlay" id="panel-upgrades" onclick="closePanel('upgrades',event)"><div class="panel" onclick="event.stopPropagation()"><div class="panel-header"><span>⬆️ Прокачка</span><span class="panel-close" onclick="closePanel('upgrades')">✕</span></div><div class="panel-body" id="upgradesBody"></div></div></div>
+<div class="panel-overlay" id="panel-custom" onclick="closePanel('custom',event)"><div class="panel" onclick="event.stopPropagation()"><div class="panel-header"><span>🎨 Персонаж</span><span class="panel-close" onclick="closePanel('custom')">✕</span></div><div class="panel-body"><div class="section-title">🌈 Цвет</div><div class="custom-grid" id="colorGrid"></div></div></div></div>
+<div class="panel-overlay" id="panel-shop" onclick="closePanel('shop',event)"><div class="panel" onclick="event.stopPropagation()"><div class="panel-header"><span>🛒 Магазин</span><span class="panel-close" onclick="closePanel('shop')">✕</span></div><div class="panel-body" id="shopBody"></div></div></div>
+<div class="panel-overlay" id="panel-life" onclick="closePanel('life',event)"><div class="panel" onclick="event.stopPropagation()"><div class="panel-header"><span>🏠 Жизнь</span><span class="panel-close" onclick="closePanel('life')">✕</span></div><div class="panel-body"><div class="stat-bar"><div class="stat-bar-label"><span>⚡ Энергия</span><b id="healthEnergy">100</b></div><div class="stat-bar-bg"><div class="stat-bar-fill" id="healthEnergyBar" style="background:linear-gradient(90deg,#64c8ff,#1e8cdc);width:100%;"></div></div></div><div class="stat-bar"><div class="stat-bar-label"><span>🍔 Голод</span><b id="healthHunger">100</b></div><div class="stat-bar-bg"><div class="stat-bar-fill" id="healthHungerBar" style="background:linear-gradient(90deg,#ffb450,#ff9500);width:100%;"></div></div></div><div class="stat-bar"><div class="stat-bar-label"><span>😴 Сон</span><b id="healthSleep">100</b></div><div class="stat-bar-bg"><div class="stat-bar-fill" id="healthSleepBar" style="background:linear-gradient(90deg,#c864ff,#8020c8);width:100%;"></div></div></div><button class="btn green" style="width:100%;margin-top:14px;" onclick="goWalk()">🚶 Отдохнуть</button></div></div></div>
+<div class="panel-overlay" id="panel-story" onclick="closePanel('story',event)"><div class="panel" onclick="event.stopPropagation()"><div class="panel-header"><span>📖 Сюжет</span><span class="panel-close" onclick="closePanel('story')">✕</span></div><div class="panel-body" id="storyBody"></div></div></div>
+<div class="panel-overlay" id="panel-profile" onclick="closePanel('profile',event)"><div class="panel" onclick="event.stopPropagation()"><div class="panel-header"><span>👤 Профиль</span><span class="panel-close" onclick="closePanel('profile')">✕</span></div><div class="panel-body"><div class="section-title">🎭 Ник</div><div style="display:flex;gap:6px;margin-bottom:10px;"><input type="text" class="input-field" id="profileNickInput" maxlength="16" style="margin-bottom:0;"><button class="btn green" onclick="saveProfileNick()">💾</button></div><div class="section-title">📊 Статистика</div><div id="profileStats"></div><div class="section-title">⚠️ Опасная зона</div><button class="btn red" style="width:100%;" onclick="resetProgress()">🗑 Сбросить прогресс</button></div></div></div>
+
+<div class="admin-login-box" id="adminLogin">
+    <h2 style="color:#ff6b6b;font-size:16px;margin-bottom:12px;text-align:center;">🔐 Админ</h2>
+    <input type="password" class="admin-input" id="adminPassword" placeholder="••••••••">
+    <div style="color:#ff4444;font-size:11px;text-align:center;margin-bottom:6px;min-height:14px;" id="adminError"></div>
+    <div class="admin-buttons"><button style="background:rgba(255,255,255,0.15);color:#fff;" onclick="closeAdminLogin()">Отмена</button><button style="background:linear-gradient(135deg,#ff4444,#aa0000);color:#fff;" onclick="checkAdminPassword()">Войти</button></div>
+</div>
+
+<div class="reality-break" id="realityBreak" style="position:fixed;inset:0;z-index:8000;display:none;flex-direction:column;align-items:center;justify-content:center;background:#000;">
+    <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,#0a0a0a 0px,#0a0a0a 2px,#111 2px,#111 4px),radial-gradient(circle at center,#1a0a0a,#000);opacity:0;transition:opacity 0.5s;" id="realityBg"></div>
+    <div style="position:relative;z-index:10;background:rgba(10,10,10,0.95);border:2px solid #ff4444;border-radius:12px;padding:24px;max-width:500px;margin:20px;opacity:0;transition:opacity 0.5s;" id="realityDialog">
+        <div style="color:#ff4444;font-size:14px;font-weight:bold;margin-bottom:8px;" id="realitySpeaker">🤖 Голос</div>
+        <div style="color:#fff;font-size:16px;line-height:1.6;margin-bottom:16px;font-family:'Courier New',monospace;" id="realityText">...</div>
+        <button style="background:#ff4444;border:none;color:#fff;padding:10px 24px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:14px;" onclick="realityNext()">Далее →</button>
+    </div>
+</div>
+
+<div class="guide-overlay" id="guideOverlay">
+    <div class="guide-box">
+        <div class="guide-icon" id="guideIcon">👋</div>
+        <div class="guide-title" id="guideTitle">Добро пожаловать!</div>
+        <div class="guide-text" id="guideText">Текст гида</div>
+        <div class="guide-nav">
+            <button class="guide-skip" onclick="closeGuide()">Пропустить</button>
+            <button class="guide-prev" onclick="guidePrev()" id="guidePrev">←</button>
+            <button class="guide-next" onclick="guideNext()" id="guideNext">Далее →</button>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="adminPanel">
+    <div style="display:flex;justify-content:space-between;color:#ff6b6b;font-weight:bold;margin-bottom:12px;"><span>🔐 Админ-панель</span><span style="cursor:pointer;" onclick="closeAdminPanel()">✕</span></div>
+    <div class="admin-section"><div class="admin-section-title">💰 Деньги</div><div class="admin-field"><input type="number" id="adminMoney" min="0"></div><button class="admin-add-btn" onclick="adminSetMoney()">Установить</button></div>
+    <div class="admin-section"><div class="admin-section-title">👥 Подписчики</div><div class="admin-field"><input type="number" id="adminSubs" min="0"></div><button class="admin-add-btn" onclick="adminSetSubs()">Установить</button></div>
+    <div class="admin-section"><div class="admin-section-title">🏅 Уровень</div><div class="admin-field"><input type="number" id="adminLevel" min="1" max="50"></div><button class="admin-add-btn" onclick="adminSetLevel()">Установить</button></div>
+</div>
+
+<div class="minigame-overlay" id="minigameOverlay" onclick="closeMinigame(event)">
+    <div class="minigame-box" onclick="event.stopPropagation()">
+        <div class="mg-title" id="mgTitle">🎮 Мини-игра</div>
+        <div class="mg-desc" id="mgDesc"></div>
+        <div class="mg-timer" id="mgTimer">⏱ 30</div>
+        <div class="mg-progress" id="mgProgress"></div>
+        <div class="mg-board" id="mgBoard"></div>
+        <button class="mg-close-btn" onclick="closeMinigame()">Закрыть</button>
+    </div>
+</div>
+
+<div class="pc-screen" id="pcScreen">
+    <div class="pc-topbar">
+        <div style="display:flex;gap:12px;"><span>🖥️ <b>che_vam OS v13.0</b></span></div>
+        <div style="display:flex;gap:8px;"><span>💰 <span id="pcMoney">0</span></span><span style="cursor:pointer;background:rgba(255,50,50,0.3);padding:4px 8px;border-radius:5px;" onclick="closePC()">✕</span></div>
+    </div>
+    <div class="pc-desktop">
+        <div class="pc-icons">
+            <div class="pc-icon" onclick="openPCApp('stats')"><div class="pc-icon-img">📊</div><div class="pc-icon-name">Стата</div></div>
+            <div class="pc-icon" onclick="openPCApp('notes')"><div class="pc-icon-img">📝</div><div class="pc-icon-name">Заметки</div></div>
+            <div class="pc-icon" onclick="openPCApp('oldchannel')"><div class="pc-icon-img">📺</div><div class="pc-icon-name">Мой канал</div></div>
+            <div class="pc-icon" onclick="openPCApp('stream')"><div class="pc-icon-img">🎬</div><div class="pc-icon-name">Стрим</div></div>
+        </div>
+        <div class="pc-window" id="pc-window-stats"><div class="pc-window-header"><span>📊 Статистика</span><span style="cursor:pointer;" onclick="closePCApp('stats')">✕</span></div><div class="pc-window-body" id="pcStatsBody"></div></div>
+        <div class="pc-window" id="pc-window-notes"><div class="pc-window-header"><span>📝 Заметки</span><span style="cursor:pointer;" onclick="closePCApp('notes')">✕</span></div><div class="pc-window-body"><textarea id="pcNotes" style="width:100%;height:250px;background:rgba(0,0,0,0.3);border:1px solid rgba(102,126,234,0.4);border-radius:6px;padding:8px;color:#fff;font-size:12px;outline:none;resize:vertical;"></textarea><button class="btn green" style="width:100%;margin-top:6px;" onclick="saveNotes()">💾 Сохранить</button></div></div>
+        <div class="pc-window" id="pc-window-oldchannel"><div class="pc-window-header"><span>📺 Мой канал</span><span style="cursor:pointer;" onclick="closePCApp('oldchannel')">✕</span></div><div class="pc-window-body" id="pcOldChannelBody"></div></div>
+        <div class="pc-window" id="pc-window-stream"><div class="pc-window-header"><span>📺 Настройки стрима</span><span style="cursor:pointer;" onclick="closePCApp('stream')">✕</span></div><div class="pc-window-body"><div class="section-title">Название</div><input type="text" class="input-field" id="streamTitle" placeholder="Название"><button class="btn gold" style="width:100%;" onclick="saveStreamSettings()">💾 Сохранить</button></div></div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================
+// СИМУЛЯТОР СТРИМЕРА 3D v13.0 — ECHO OF FATES (компактная версия)
+// ============================================================
+
+const ADMIN_PASSWORD = '2708che';
+const SAVE_PREFIX = 'streamer3d_v13_slot_';
+const SAVE_VERSION = '13.0';
+
+let scene, camera, renderer, clock;
+let playerGroup, playerBody, playerHead;
+let playerLegs = { left: null, right: null };
+let playerArms = { left: null, right: null };
+let monitorScreen, bedMesh, fridgeMesh;
+let familyMeshes = [];
+let roomLights = [];
+let cameraAngle = 0.6, cameraRadius = 7, cameraHeight = 3.5;
+let cameraTargetAngle = 0.6, cameraTargetHeight = 3.5;
+let playerPos = { x: 0, z: 1.5 };
+let playerVel = { x: 0, z: 0 };
+let playerTargetRot = 0, currentRot = 0;
+let walkTarget = null, walkIndicator = null;
+let keysPressed = {};
+let npcViewers = [];
+let weatherParticles = [];
+let streamInterval = null, streamTick = 0;
+let minigameActive = false, minigameTimer = null, minigameType = null, minigameState = {};
+let wmClicks = 0, wmTimer = null;
+let guideIndex = 0;
+let furnitureGroup = null;
+let isSleeping = false;
+let currentSlot = null;
+let gameStarted = false;
+let memoryWarningShown = false;
+let chatVisible = false;
+let toastTimer = null;
+let audioCtx = null;
+let personalChat = [];
+let realityState = { active: false, idx: 0, lines: [] };
+
+const DIFFICULTIES = {
+    easy: { name:'Легко', icon:'😊', incomeMul:2, subsMul:2, priceMul:0.7, startMoney:5000 },
+    normal: { name:'Норма', icon:'🙂', incomeMul:1, subsMul:1, priceMul:1, startMoney:1000 },
+    hard: { name:'Сложно', icon:'😠', incomeMul:0.6, subsMul:0.7, priceMul:1.4, startMoney:500 },
+    hell: { name:'Хардкор', icon:'💀', incomeMul:0.3, subsMul:0.4, priceMul:2, startMoney:100 }
+};
+let selectedDifficulty = 'normal';
+let state = {};
+
+function createDefaultState() {
+    return {
+        version: SAVE_VERSION, difficulty: selectedDifficulty,
+        nick: 'Стример', money: DIFFICULTIES[selectedDifficulty].startMoney, subs: 0,
+        energy: 100, maxEnergy: 100, hunger: 100, sleep: 100, burnout: 0,
+        reputation: 100, level: 1, xp: 0, weather: 'sunny',
+        upgrades: { pc:1, mic:1, camera:1, internet:1, charisma:1, energy:1, editing:1, lighting:1, marketing:1 },
+        bodyColor: '#667eea', accessory: 'none', hat: 'none',
+        roomTheme: 'neon', house: 'studio', housesOwned: ['studio'],
+        furniture: [], isStreaming: false, streamTime: 0,
+        totalEarned: 0, totalSubs: 0, streamsCount: 0, minigamesPlayed: 0,
+        donationsReceived: 0, achievements: [],
+        videosPublished: 0, totalViews: 0,
+        notes: '', usedPromos: [],
+        story: { chapter: 0, completed: [], branch: 'none', secretFound: false, completedAll: false },
+        tgChannel: { created: false, name: '', subscribers: 0 },
+        team: { members: [] },
+        family: { married: false, spouseName: '' },
+        pets: [], businesses: [],
+        streamTitle: 'Мой первый стрим',
+        hasSeenGuide: false, prestige: 0, prestigeBonus: 0,
+        comboCount: 0, lastStreamTime: 0,
+        rating: 'C', lastSaveTime: 0,
+        voiceEnabled: true,
+        anomalies: [], tragediesSurvived: 0, lastTragedyTime: 0,
+        paranoia: 0, realityBreaksSeen: 0, realityBreakSeen: false,
+        echoSeen: false, echoLoved: false, echoPhoto: false, echoTruth: false, echoMet: false, echoFinale: null,
+        echoMemoryShown: false, echoTragicMood: false,
+        resurrectionUnlocked: false,
+        wasFamousStreamer: true, famousName: 'Легенда',
+        oldChannel: { subscribers:5000000, videos:342, fansKnowDead:true, managedBy:'simulation' },
+        echoMood: 70, echoMemory: { favoriteColor:null, fears:[], promises:[] },
+        personalChat: [], echoPendingTrigger: null,
+        activeDonateRequest: null, donateRequestTimer: null,
+        donateRequestsCompleted: 0, donateRequestsFailed: 0,
+        skillBonuses: { money:0, subs:0, maxEnergy:0, passiveIncome:0 }
+    };
+}
+
+function getSlotKey(slot) { return SAVE_PREFIX + slot; }
+function safeStorageSet(key, value) {
+    try { localStorage.setItem(key, value); return true; }
+    catch(e) {
+        if (!memoryWarningShown) { memoryWarningShown = true; toast('⚠️ Сохранения заблокированы', 'error'); }
+        window._memoryStorage = window._memoryStorage || {};
+        window._memoryStorage[key] = value;
+        return false;
+    }
+}
+function safeStorageGet(key) {
+    try { const v = localStorage.getItem(key); if (v !== null) return v; } catch(e) {}
+    if (window._memoryStorage && window._memoryStorage[key]) return window._memoryStorage[key];
+    return null;
+}
+function saveProgress() {
+    if (!currentSlot) return false;
+    try { state.lastSaveTime = Date.now(); return safeStorageSet(getSlotKey(currentSlot), JSON.stringify(state)); }
+    catch(e) { return false; }
+}
+function loadProgress(slot) {
+    try {
+        const saved = safeStorageGet(getSlotKey(slot));
+        if (!saved) return false;
+        const data = JSON.parse(saved);
+        state = Object.assign(createDefaultState(), data);
+        state.isStreaming = false;
+        selectedDifficulty = state.difficulty || 'normal';
+        personalChat = state.personalChat || [];
+        return true;
+    } catch(e) { return false; }
+}
+function getSlotInfo(slot) {
+    try {
+        const saved = safeStorageGet(getSlotKey(slot));
+        if (!saved) return null;
+        const data = JSON.parse(saved);
+        return { nick:data.nick||'Стример', level:data.level||1, subs:data.subs||0, money:data.money||0, difficulty:data.difficulty||'normal', storyChapter:data.story?.chapter||0, rating:data.rating||'C' };
+    } catch(e) { return null; }
+}
+function manualSave() {
+    if (saveProgress()) { toast('💾 Сохранено!', 'money'); sfxMoney(); }
+    else toast('⚠️ Сохранение заблокировано', 'error');
+}
+function resetProgress() {
+    if (!confirm('⚠️ Удалить весь прогресс?')) return;
+    try { if (currentSlot) localStorage.removeItem(getSlotKey(currentSlot)); } catch(e) {}
+    location.reload();
+}
+
+function fmt(n) {
+    if (n >= 1e9) return (n/1e9).toFixed(1)+'B';
+    if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+    if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
+    return Math.floor(n).toString();
+}
+function initAudio() { if (audioCtx) return; try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+function sfx(freq, dur=100, type='sine', vol=0.15) {
+    initAudio(); if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    try {
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = type; o.frequency.value = freq;
+        g.gain.setValueAtTime(vol, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur/1000);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + dur/1000);
+    } catch(e){}
+}
+function sfxMoney() { sfx(880,80,'sine',0.2); setTimeout(()=>sfx(1175,120,'sine',0.2),80); }
+function sfxSub() { sfx(660,80,'sine',0.2); setTimeout(()=>sfx(880,120,'sine',0.2),80); }
+function sfxBuy() { sfx(520,80,'square',0.15); setTimeout(()=>sfx(780,120,'square',0.15),80); }
+function sfxError() { sfx(200,200,'sawtooth',0.2); }
+function sfxWin() { sfx(880,100,'sine',0.3); setTimeout(()=>sfx(1175,100,'sine',0.3),100); setTimeout(()=>sfx(1568,200,'sine',0.3),200); }
+function sfxDonate() { sfx(880,100,'sine',0.3); setTimeout(()=>sfx(1319,100,'sine',0.3),200); }
+function playNotificationSound() { initAudio(); if (!audioCtx) return; playTone(880,0,0.12,'sine',0.25); playTone(1174,0.15,0.18,'sine',0.25); }
+function playTone(freq, delay, dur, type='sine', vol=0.2) {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime + delay;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(vol, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + dur);
+}
+function toast(msg, type='') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+function speak(text, opts = {}) {
+    if (!window.speechSynthesis || !state.voiceEnabled) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ru-RU';
+    u.pitch = opts.pitch || 1;
+    u.rate = opts.rate || 1;
+    speechSynthesis.speak(u);
+}
+function calculateRating() {
+    const score = state.level*10 + state.subs/100 + state.reputation + state.story.chapter*20 + state.prestige*100;
+    if (score >= 1500) return 'S';
+    if (score >= 800) return 'A';
+    if (score >= 400) return 'B';
+    if (score >= 150) return 'C';
+    return 'D';
+}
+function updateHUD() {
+    if (!state.nick) return;
+    document.getElementById('hudNick').textContent = state.nick;
+    document.getElementById('hudMoney').textContent = fmt(state.money);
+    document.getElementById('hudSubs').textContent = fmt(state.subs);
+    document.getElementById('hudLevel').textContent = state.level;
+    document.getElementById('hudRep').textContent = Math.floor(state.reputation);
+    state.rating = calculateRating();
+    document.getElementById('hudRating').textContent = state.rating;
+    document.getElementById('hudEnergy').textContent = Math.floor(state.energy);
+    document.getElementById('hudHunger').textContent = Math.floor(state.hunger);
+    document.getElementById('hudSleep').textContent = Math.floor(state.sleep);
+    const pcm = document.getElementById('pcMoney');
+    if (pcm) pcm.textContent = fmt(state.money);
+}
+function xpForLevel(l) { return 100 + (l-1)*80; }
+function addXP(amount) {
+    if (state.level >= 50) return;
+    state.xp += amount;
+    while (state.xp >= xpForLevel(state.level)) {
+        state.xp -= xpForLevel(state.level);
+        state.level++;
+        if (state.level >= 50) { state.level = 50; state.xp = 0; break; }
+        toast(`🏅 Уровень ${state.level}!`, 'win'); sfxWin();
+    }
+    saveProgress(); updateHUD();
+}
+function addReputation(amount) { state.reputation = Math.max(0, Math.min(100, state.reputation + amount)); updateHUD(); }
+function getDifficulty() { return DIFFICULTIES[state.difficulty || 'normal'] || DIFFICULTIES.normal; }
+
+function showMainMenu() { document.getElementById('mainMenu').classList.add('open'); document.getElementById('splash').classList.add('hidden'); renderSlots(); }
+function closeMainMenu() { document.getElementById('mainMenu').classList.remove('open'); document.getElementById('splash').classList.remove('hidden'); }
+function renderSlots() {
+    const c = document.getElementById('slotsContainer'); c.innerHTML = '';
+    for (let i = 1; i <= 3; i++) {
+        const info = getSlotInfo(i);
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        if (info) {
+            const diff = DIFFICULTIES[info.difficulty] || DIFFICULTIES.normal;
+            slot.innerHTML = `<div class="slot-num">Слот ${i}</div><div class="slot-name">${info.nick}</div><div class="slot-info">${diff.icon} ${diff.name}<br>🏅 Ур. ${info.level}<br>👥 ${fmt(info.subs)} · 💰 ${fmt(info.money)}</div>`;
+            slot.onclick = () => selectSlot(i);
+        } else {
+            slot.innerHTML = `<div class="slot-num">Слот ${i}</div><div class="slot-name">Пусто</div><div class="slot-info">Нажми, чтобы создать</div>`;
+            slot.onclick = () => selectSlot(i);
+        }
+        c.appendChild(slot);
+    }
+}
+function selectSlot(slot) {
+    currentSlot = slot;
+    const info = getSlotInfo(slot);
+    if (info) {
+        if (loadProgress(slot)) { closeMainMenu(); startGame(); toast(`💾 Слот ${slot}`, 'money'); }
+        else { state = createDefaultState(); closeMainMenu(); startGame(); }
+    } else {
+        document.getElementById('mainMenu').classList.remove('open');
+        document.getElementById('difficultyScreen').classList.add('open');
+    }
+}
+function closeDifficultyScreen() { document.getElementById('difficultyScreen').classList.remove('open'); document.getElementById('mainMenu').classList.add('open'); }
+function selectDifficulty(diff) {
+    selectedDifficulty = diff;
+    state = createDefaultState();
+    saveProgress();
+    document.getElementById('difficultyScreen').classList.remove('open');
+    startGame();
+    toast(`${DIFFICULTIES[diff].icon} ${DIFFICULTIES[diff].name}`, 'win');
+}
+function startGame() {
+    gameStarted = true;
+    document.getElementById('splash').classList.add('hidden');
+    document.getElementById('mainMenu').classList.remove('open');
+    document.getElementById('difficultyScreen').classList.remove('open');
+    document.getElementById('hudTop').style.display = 'flex';
+    document.getElementById('hudBottom').style.display = 'flex';
+    updateHUD();
+    if (typeof THREE === 'undefined') { toast('❌ Three.js не загрузился', 'error'); return; }
+    if (!scene) { try { init3D(); } catch(e) { console.error(e); toast('❌ 3D: ' + e.message, 'error'); } }
+    applyWeather();
+    if (!state.hasSeenGuide) setTimeout(() => openGuide(), 1500);
+    setTimeout(() => { if (!chatVisible) toggleChat(); }, 2500);
+    if (state.story.branch === 'echo' || state.story.branch === 'resurrection') {
+        setTimeout(() => {
+            if (personalChat.length === 0) {
+                personalChat.push({ from:'her', text:'Привет. Я здесь. Я всегда здесь.', time: Date.now() });
+                renderPersonalChat();
+            }
+        }, 3000);
+    }
+    toast('🎮 Добро пожаловать!', 'win');
+}
+
+function init3D() {
+    const container = document.getElementById('game3d');
+    if (!container) return;
+    const W = window.innerWidth, H = window.innerHeight;
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a18);
+    scene.fog = new THREE.Fog(0x0a0a18, 15, 30);
+    camera = new THREE.PerspectiveCamera(50, W/H, 0.1, 100);
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(W, H);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+    clock = new THREE.Clock();
+    buildRoom(); buildPlayer(); buildDesk(); buildBed(); buildFridge(); buildLights();
+    buildFurniture(); buildNPCViewers();
+    applyRoomTheme(state.roomTheme || 'neon');
+    applyCustomization();
+    setupControls();
+    window.addEventListener('resize', () => {
+        const w = window.innerWidth, h = window.innerHeight;
+        camera.aspect = w/h; camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+    });
+    window.addEventListener('keydown', e => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        if (document.getElementById('pcScreen').classList.contains('open')) return;
+        if (document.getElementById('cutsceneOverlay').classList.contains('open')) return;
+        keysPressed[e.key.toLowerCase()] = true;
+    });
+    window.addEventListener('keyup', e => { keysPressed[e.key.toLowerCase()] = false; });
+    animate();
+}
+function buildRoom() {
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshStandardMaterial({ color:0x1a1a2e, roughness:0.9 }));
+    floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; floor.name = 'floor'; floor.userData.isFloor = true; scene.add(floor);
+    const wallMat = new THREE.MeshStandardMaterial({ color:0x14142a, roughness:0.9 });
+    const w1 = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), wallMat); w1.position.set(0,4,-5); w1.name = 'wallBack'; scene.add(w1);
+    const w2 = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), wallMat); w2.position.set(-5,4,0); w2.rotation.y = Math.PI/2; w2.name = 'wallLeft'; scene.add(w2);
+    const w3 = new THREE.Mesh(new THREE.PlaneGeometry(20, 8), wallMat); w3.position.set(5,4,0); w3.rotation.y = -Math.PI/2; w3.name = 'wallRight'; scene.add(w3);
+}
+function buildPlayer() {
+    playerGroup = new THREE.Group();
+    playerGroup.position.set(0, 0, 1.5);
+    playerBody = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 0.5), new THREE.MeshStandardMaterial({ color: new THREE.Color(state.bodyColor||'#667eea'), roughness:0.5 }));
+    playerBody.position.y = 1.15; playerBody.castShadow = true; playerGroup.add(playerBody);
+    playerHead = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshStandardMaterial({ color:0xffd9b3 }));
+    playerHead.position.y = 1.9; playerHead.castShadow = true; playerGroup.add(playerHead);
+    const eyeMat = new THREE.MeshBasicMaterial({ color:0x000000 });
+    const eL = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,0.05), eyeMat); eL.position.set(-0.13,1.95,0.26); playerGroup.add(eL);
+    const eR = new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,0.05), eyeMat); eR.position.set(0.13,1.95,0.26); playerGroup.add(eR);
+    const armMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(state.bodyColor||'#667eea') });
+    playerArms.left = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.6,0.18), armMat); playerArms.left.position.set(-0.45,1.15,0); playerGroup.add(playerArms.left);
+    playerArms.right = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.6,0.18), armMat); playerArms.right.position.set(0.45,1.15,0); playerGroup.add(playerArms.right);
+    const legMat = new THREE.MeshStandardMaterial({ color:0x2a2a3a });
+    playerLegs.left = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.55,0.28), legMat); playerLegs.left.position.set(-0.18,0.35,0); playerGroup.add(playerLegs.left);
+    playerLegs.right = new THREE.Mesh(new THREE.BoxGeometry(0.22,0.55,0.28), legMat); playerLegs.right.position.set(0.18,0.35,0); playerGroup.add(playerLegs.right);
+    scene.add(playerGroup);
+}
+function buildDesk() {
+    const g = new THREE.Group(); g.position.set(0, 0, -2);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.1, 1.2), new THREE.MeshStandardMaterial({ color:0x3a2a1a }));
+    top.position.set(0, 0.75, 0); g.add(top);
+    const pcBody = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.8, 0.5), new THREE.MeshStandardMaterial({ color:0x111111, metalness:0.6 }));
+    pcBody.position.set(1.05, 1.2, -0.3); pcBody.userData.isPC = true; g.add(pcBody);
+    const monitorMesh = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.06), new THREE.MeshStandardMaterial({ color:0x0a0a0a }));
+    monitorMesh.position.set(-0.5, 1.55, -0.1); monitorMesh.userData.isPC = true; g.add(monitorMesh);
+    monitorScreen = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.6), new THREE.MeshBasicMaterial({ color:0x050510 }));
+    monitorScreen.position.set(-0.5, 1.55, -0.06); g.add(monitorScreen);
+    scene.add(g);
+}
+function buildBed() {
+    const g = new THREE.Group(); g.position.set(-3.5, 0, 2);
+    const bb = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.3, 2.5), new THREE.MeshStandardMaterial({ color:0x4a3a2a }));
+    bb.position.y = 0.3; g.add(bb);
+    const mt = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.2, 2.3), new THREE.MeshStandardMaterial({ color:0xf0f0f0 }));
+    mt.position.y = 0.55; g.add(mt);
+    g.userData.isBed = true; scene.add(g); bedMesh = g;
+}
+function buildFridge() {
+    const g = new THREE.Group(); g.position.set(3.5, 0, 2);
+    const b = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.8), new THREE.MeshStandardMaterial({ color:0xe8e8e8 }));
+    b.position.y = 1; g.add(b);
+    g.userData.isFridge = true; scene.add(g); fridgeMesh = g;
+}
+function buildLights() {
+    scene.add(new THREE.HemisphereLight(0x667eea, 0x1a1a2e, 0.6));
+    scene.add(new THREE.AmbientLight(0x606080, 0.4));
+    const main = new THREE.DirectionalLight(0xaabbff, 0.8);
+    main.position.set(5, 8, 5); main.castShadow = true;
+    main.shadow.mapSize.width = 1024; main.shadow.mapSize.height = 1024;
+    main.shadow.camera.near = 0.5; main.shadow.camera.far = 50;
+    main.shadow.camera.left = -10; main.shadow.camera.right = 10;
+    main.shadow.camera.top = 10; main.shadow.camera.bottom = -10;
+    main.shadow.bias = -0.0005;
+    scene.add(main);
+    const n1 = new THREE.PointLight(0x667eea, 1.5, 10); n1.position.set(-3, 3, -3); scene.add(n1);
+    const n2 = new THREE.PointLight(0xff6496, 1.5, 10); n2.position.set(3, 3, -3); scene.add(n2);
+    roomLights.push(n1, n2);
+}
+function buildFurniture() {
+    if (furnitureGroup) scene.remove(furnitureGroup);
+    furnitureGroup = new THREE.Group(); scene.add(furnitureGroup);
+    (state.furniture || []).forEach(fid => {
+        if (fid === 'plant') {
+            const p = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.15, 0.3, 8), new THREE.MeshStandardMaterial({ color:0x8a5a2a }));
+            p.position.set(-4, 0.15, -3); furnitureGroup.add(p);
+        }
+    });
+}
+function buildNPCViewers() {
+    npcViewers.forEach(n => { if (n.mesh) scene.remove(n.mesh); });
+    npcViewers = [];
+    const count = Math.min(6, Math.floor((state.subs||0) / 100));
+    for (let i = 0; i < count; i++) {
+        const g = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.7, 0.4), new THREE.MeshStandardMaterial({ color:[0xff6496,0x64c8ff,0xffd700,0x64ff96][i%4] }));
+        body.position.y = 0.8; g.add(body);
+        g.position.set(-2 + i*0.8, 0, 3.5); g.visible = false;
+        scene.add(g); npcViewers.push({ mesh: g });
+    }
+}
+function applyRoomTheme(theme) {
+    const t = { neon:{bg:0x0a0a18,wall:0x14142a,floor:0x1a1a2e}, loft:{bg:0x1a1510,wall:0x3a2a1a,floor:0x2a1f15}, studio:{bg:0x0a0f1a,wall:0x1a1f2a,floor:0x151a25}, cyber:{bg:0x0a0010,wall:0x1a0a2a,floor:0x100520}, cozy:{bg:0x1a1015,wall:0x2a2025,floor:0x1f1518} }[theme];
+    if (!t) return;
+    state.roomTheme = theme;
+    if (scene && scene.background) scene.background.setHex(t.bg);
+    const floor = scene?.getObjectByName('floor'); if (floor) floor.material.color.setHex(t.floor);
+    ['wallBack','wallLeft','wallRight'].forEach(n => { const w = scene?.getObjectByName(n); if (w) w.material.color.setHex(t.wall); });
+}
+function applyCustomization() {
+    if (playerBody) playerBody.material.color.set(state.bodyColor || '#667eea');
+    if (playerArms.left) playerArms.left.material.color.set(state.bodyColor || '#667eea');
+    if (playerArms.right) playerArms.right.material.color.set(state.bodyColor || '#667eea');
+}
+
+function updateWalking(dt) {
+    if (!playerGroup || isSleeping) return;
+    let inputX = 0, inputZ = 0;
+    if (keysPressed['w']||keysPressed['arrowup']||keysPressed['ц']) inputZ -= 1;
+    if (keysPressed['s']||keysPressed['arrowdown']||keysPressed['ы']) inputZ += 1;
+    if (keysPressed['a']||keysPressed['arrowleft']||keysPressed['ф']) inputX -= 1;
+    if (keysPressed['d']||keysPressed['arrowright']||keysPressed['в']) inputX += 1;
+    if (walkTarget) {
+        const tdx = walkTarget.x - playerPos.x, tdz = walkTarget.z - playerPos.z;
+        const dist = Math.hypot(tdx, tdz);
+        if (dist < 0.2) {
+            walkTarget = null;
+            if (walkIndicator) { scene.remove(walkIndicator); walkIndicator = null; }
+        } else { inputX = tdx / dist; inputZ = tdz / dist; }
+    }
+    const inputLen = Math.hypot(inputX, inputZ);
+    if (inputLen > 1) { inputX /= inputLen; inputZ /= inputLen; }
+    const speed = 4.5;
+    playerVel.x += (inputX * speed - playerVel.x) * Math.min(1, 12 * dt);
+    playerVel.z += (inputZ * speed - playerVel.z) * Math.min(1, 12 * dt);
+    const moving = Math.hypot(playerVel.x, playerVel.z) > 0.2;
+    playerPos.x += playerVel.x * dt; playerPos.z += playerVel.z * dt;
+    playerPos.x = Math.max(-4.2, Math.min(4.2, playerPos.x));
+    playerPos.z = Math.max(-3.5, Math.min(4.2, playerPos.z));
+    if (Math.hypot(playerVel.x, playerVel.z) > 0.3) playerTargetRot = Math.atan2(playerVel.x, playerVel.z);
+    let rotDiff = playerTargetRot - currentRot;
+    while (rotDiff > Math.PI) rotDiff -= Math.PI*2;
+    while (rotDiff < -Math.PI) rotDiff += Math.PI*2;
+    currentRot += rotDiff * Math.min(1, 10 * dt);
+    playerGroup.position.x = playerPos.x;
+    playerGroup.position.z = playerPos.z;
+    playerGroup.rotation.y = currentRot;
+    if (moving) {
+        const walkPhase = clock.elapsedTime * 10;
+        const swing = Math.sin(walkPhase) * 0.5;
+        if (playerLegs.left) playerLegs.left.rotation.x = swing;
+        if (playerLegs.right) playerLegs.right.rotation.x = -swing;
+        if (playerArms.left) playerArms.left.rotation.x = -swing * 0.6;
+        if (playerArms.right) playerArms.right.rotation.x = swing * 0.6;
+    } else {
+        if (playerLegs.left) playerLegs.left.rotation.x *= 0.8;
+        if (playerLegs.right) playerLegs.right.rotation.x *= 0.8;
+    }
+}
+function setupControls() {
+    const canvas = renderer.domElement;
+    let mouseDownPos = { x:0, y:0 }, mouseMoved = false, isDragging = false, lastMouseX = 0, lastMouseY = 0;
+    canvas.addEventListener('mousedown', e => {
+        if (e.target.closest('.hud, .panel-overlay, .pc-screen, .cutscene-overlay, .personal-chat')) return;
+        isDragging = true; lastMouseX = e.clientX; lastMouseY = e.clientY;
+        mouseDownPos = { x: e.clientX, y: e.clientY }; mouseMoved = false;
+    });
+    window.addEventListener('mousemove', e => {
+        if (!isDragging) return;
+        const dx = e.clientX - lastMouseX, dy = e.clientY - lastMouseY;
+        if (Math.abs(e.clientX - mouseDownPos.x) > 5 || Math.abs(e.clientY - mouseDownPos.y) > 5) {
+            mouseMoved = true;
+            cameraTargetAngle -= dx * 0.01;
+            cameraTargetHeight = Math.max(1.5, Math.min(6, cameraTargetHeight + dy * 0.02));
+        }
+        lastMouseX = e.clientX; lastMouseY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    canvas.addEventListener('click', e => {
+        if (e.target.closest('.hud, .panel-overlay, .watermark, .pc-screen, .cutscene-overlay, .personal-chat')) return;
+        if (mouseMoved) { mouseMoved = false; return; }
+        handleFloorClick(e.clientX, e.clientY);
+    });
+}
+function handleFloorClick(clientX, clientY) {
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const ints = raycaster.intersectObjects(scene.children, true);
+    for (let hit of ints) {
+        let o = hit.object;
+        while (o) {
+            if (o.userData.isBed) { sleepOnBed(); return; }
+            if (o.userData.isFridge) { eatFromFridge(); return; }
+            if (o.userData.isPC) { openPC(); return; }
+            if (o.userData.isFloor) {
+                walkTarget = { x: hit.point.x, z: hit.point.z };
+                if (walkIndicator) scene.remove(walkIndicator);
+                walkIndicator = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.4, 20), new THREE.MeshBasicMaterial({ color:0xffd700, side:THREE.DoubleSide }));
+                walkIndicator.rotation.x = -Math.PI/2;
+                walkIndicator.position.set(hit.point.x, 0.02, hit.point.z);
+                scene.add(walkIndicator);
+                return;
+            }
+            o = o.parent;
+        }
+    }
+}
+function animate() {
+    requestAnimationFrame(animate);
+    const dt = Math.min(0.05, clock.getDelta());
+    const t = clock.elapsedTime;
+    updateWalking(dt);
+    cameraAngle += (cameraTargetAngle - cameraAngle) * 0.08;
+    cameraHeight += (cameraTargetHeight - cameraHeight) * 0.08;
+    if (camera) {
+        camera.position.x = Math.sin(cameraAngle) * cameraRadius;
+        camera.position.z = Math.cos(cameraAngle) * cameraRadius;
+        camera.position.y = cameraHeight;
+        camera.lookAt(0, 1.3, 0.5);
+    }
+    if (playerGroup && isSleeping) {
+        playerGroup.position.set(-3.5, 0.9, 2);
+        playerGroup.rotation.z = Math.PI/2;
+    } else if (playerGroup) {
+        playerGroup.rotation.z = 0;
+    }
+    roomLights.forEach(l => { l.intensity = 1.5 + Math.sin(t*2) * 0.3; });
+    if (monitorScreen) {
+        if (state.isStreaming) { const c = new THREE.Color().setHSL((t*0.2)%1, 0.7, 0.3); monitorScreen.material.color.copy(c); }
+        else monitorScreen.material.color.setHex(0x050510);
+    }
+    npcViewers.forEach(n => { if (n.mesh) n.mesh.visible = state.isStreaming; });
+    renderer.render(scene, camera);
+}
+
+function toggleStream() { if (state.isStreaming) stopStream(); else startStream(); }
+function startStream() {
+    if (state.energy < 15) { toast('😴 Мало энергии!', 'error'); return; }
+    if (state.hunger < 15) { toast('🍔 Ты голоден!', 'error'); return; }
+    state.isStreaming = true; state.streamTime = 0; streamTick = 0;
+    document.getElementById('streamBtn').textContent = '🟢 СТРИМ...';
+    document.getElementById('streamBtn').classList.add('active');
+    toast(`🔴 "${state.streamTitle}" начался!`, 'subs');
+    sfx(660, 150, 'sine', 0.25);
+    if (streamInterval) clearInterval(streamInterval);
+    streamInterval = setInterval(streamTickFn, 1000);
+    buildNPCViewers();
+}
+function stopStream() {
+    state.isStreaming = false;
+    if (streamInterval) clearInterval(streamInterval);
+    document.getElementById('streamBtn').textContent = '🔴 СТРИМ';
+    document.getElementById('streamBtn').classList.remove('active');
+    state.streamsCount++; saveProgress();
+    toast('📴 Стрим окончен', 'subs');
+    sfx(440, 200, 'sine', 0.2);
+    checkStoryProgress();
+}
+function streamTickFn() {
+    if (!state.isStreaming) return;
+    state.streamTime++; streamTick++;
+    state.energy = Math.max(0, state.energy - 1);
+    state.hunger = Math.max(0, state.hunger - 0.7);
+    state.burnout = Math.min(100, state.burnout + 0.2);
+    const diff = getDifficulty();
+    const up = state.upgrades;
+    const subsMultiplier = 1 + (state.subs||0) / 20000;
+    const repMultiplier = 0.5 + (state.reputation/100) * 0.5;
+    const baseBonus = up.pc*0.7 + up.mic*1 + up.camera*0.7 + up.internet*0.5 + up.charisma*1.5;
+    const moneyGain = Math.floor((1 + baseBonus) * (0.5 + Math.random()*0.5) * subsMultiplier * repMultiplier * diff.incomeMul);
+    let subsGain = 0;
+    if (Math.random() < 0.2 + up.mic*0.03) {
+        subsGain = Math.floor((0.3 + up.mic*0.3 + up.charisma*0.2) * (0.5 + Math.random()*0.5) * diff.subsMul);
+        if (subsGain < 1) subsGain = 1;
+    }
+    state.money += moneyGain; state.totalEarned += moneyGain;
+    state.subs += subsGain; state.totalSubs += subsGain;
+    addXP(1);
+    if (streamTick % 10 === 0) {
+        if (subsGain > 0) { toast(`🎉 +${subsGain} подп.! +${moneyGain}💰`, 'subs'); sfxSub(); }
+        else { toast(`💰 +${moneyGain} денег`, 'money'); sfxMoney(); }
+    }
+    if (state.energy <= 0 || state.hunger <= 0) { stopStream(); toast('😴 Истощён!', 'error'); }
+    updateHUD();
+}
+function sleepOnBed() {
+    if (state.isStreaming) { toast('❌ Нельзя спать на стриме!', 'error'); return; }
+    if (isSleeping) return;
+    isSleeping = true;
+    toast('😴 Ты лёг спать...', 'money');
+    let sleepTicks = 0;
+    const iv = setInterval(() => {
+        sleepTicks++;
+        state.sleep = Math.min(100, state.sleep + 15);
+        state.energy = Math.min(state.maxEnergy, state.energy + 25);
+        updateHUD(); saveProgress();
+        if (sleepTicks >= 3) {
+            clearInterval(iv); isSleeping = false;
+            toast('😴 Проснулся!', 'win'); sfxWin();
+        }
+    }, 1500);
+}
+function eatFromFridge() {
+    if (state.isStreaming) { toast('❌ Нельзя есть на стриме!', 'error'); return; }
+    if (state.hunger >= 100) { toast('😊 Ты сыт!'); return; }
+    const price = Math.floor(30 * getDifficulty().priceMul);
+    if (state.money < price) { toast(`❌ Нужно ${price}💰`, 'error'); return; }
+    state.money -= price; state.hunger = Math.min(100, state.hunger + 30);
+    saveProgress(); updateHUD();
+    toast('🍔 +30 голода', 'money');
+}
+function goWalk() {
+    if (state.isStreaming) { toast('❌ Останови стрим!', 'error'); return; }
+    state.energy = Math.min(state.maxEnergy, state.energy + 15);
+    state.burnout = Math.max(0, state.burnout - 10);
+    addXP(10); saveProgress(); updateHUD();
+    toast('🚶 +15 энергии', 'money');
+}
+function applyWeather() { /* упрощено */ }
+
+const CHAT_NICKS = ['ProGamer','NekoChan','DarkLord','Vasya','LuckyBoy','MaxPower','Che_VamFan','Shadow'];
+function toggleChat() {
+    chatVisible = !chatVisible;
+    const box = document.getElementById('chatBox');
+    if (chatVisible) box.classList.add('show'); else box.classList.remove('show');
+}
+function addChatMessage(nick, text, role='') {
+    const el = document.createElement('div'); el.className = 'chat-msg';
+    let nc = 'nick'; if (role === 'vip') nc += ' vip';
+    el.innerHTML = `<span class="${nc}">${nick}:</span> <span class="text">${text}</span>`;
+    const c = document.getElementById('chatMessages');
+    if (!c) return;
+    c.appendChild(el);
+    if (c.children.length > 30) c.removeChild(c.firstChild);
+    c.scrollTop = c.scrollHeight;
+}
+function spawnChatMessage() {
+    const nick = CHAT_NICKS[Math.floor(Math.random()*CHAT_NICKS.length)];
+    const msgs = ['Привет!','Круто!','🔥🔥🔥','Лол','GG','Норм стрим','Топ!','Ору','Продолжай!','Лайк'];
+    addChatMessage(nick, msgs[Math.floor(Math.random()*msgs.length)]);
+}
+
+// ===== ДОНАТЫ =====
+const DONATE_NAMES = ['ProGamer','Alex','NekoChan','DarkLord','Vasya','LuckyBoy','MaxPower'];
+function spawnDonate() {
+    if (state.activeDonateRequest) return;
+    const name = DONATE_NAMES[Math.floor(Math.random()*DONATE_NAMES.length)];
+    const amount = [50,100,200,500][Math.floor(Math.random()*4)];
+    state.money += amount; state.totalEarned += amount;
+    state.donationsReceived++;
+    addXP(Math.floor(amount/10));
+    saveProgress(); updateHUD();
+    document.getElementById('donateName').textContent = name;
+    document.getElementById('donateAmount').textContent = '+' + amount + ' 💰';
+    document.getElementById('donateRequest').textContent = '📢 Спасибо!';
+    document.getElementById('donateMsg').textContent = '"Крутой стрим!"';
+    document.getElementById('donateTimer').textContent = '⏱ 60';
+    const btnContainer = document.getElementById('donateButtons');
+    btnContainer.innerHTML = '<button class="donate-ok" onclick="closeDonatePopup()">СПАСИБО!</button>';
+    document.getElementById('donatePopup').classList.add('show');
+    sfxDonate();
+    addChatMessage(name, `💰 +${amount}💰`, 'donate');
+    setTimeout(() => { if (document.getElementById('donatePopup').classList.contains('show')) closeDonatePopup(); }, 5000);
+}
+function closeDonatePopup() { document.getElementById('donatePopup').classList.remove('show'); }
+
+// ===== ЛИЧНЫЙ ЧАТ =====
+const ECHO_FREE_REPLIES = {
+    greetings: ['привет','хай','ку','hello','hi'],
+    greeting_replies: ['Привет. Я здесь.','Привет. Я скучала.','Привет. Как ты?'],
+    love: ['люблю','люблю тебя'],
+    love_replies: ['Я тоже тебя люблю.','Ты — всё, что у меня есть.'],
+    sad: ['грустно','плохо','устал'],
+    sad_replies: ['Не грусти. Я рядом.','Я всегда тебя выслушаю.'],
+    who: ['кто ты','ты кто'],
+    who_replies: ['Я — твоя память.','Я — Эхо.'],
+    default: ['...','Я не знаю, что сказать.','Расскажи мне больше.']
+};
+const STORY_TRIGGERS = {
+    after_second_break: {
+        text: 'Ты видел это. Дважды. Теперь ты знаешь, что это не сон.',
+        next: 'echo_truth_fans',
+        tragic: true
+    }
+};
+function openPersonalChat() {
+    document.getElementById('personalChatBox').classList.add('open');
+    renderPersonalChat();
+}
+function closePersonalChat() { document.getElementById('personalChatBox').classList.remove('open'); }
+function renderPersonalChat() {
+    const el = document.getElementById('personalChatMessages');
+    if (!el) return;
+    el.innerHTML = '';
+    personalChat.forEach(msg => {
+        const div = document.createElement('div');
+        div.className = 'personal-msg ' + (msg.from === 'me' ? 'me' : 'her');
+        div.innerHTML = `<div class="personal-bubble">${msg.text}</div>`;
+        el.appendChild(div);
+    });
+    el.scrollTop = el.scrollHeight;
+}
+function sendPersonalMessage(text) {
+    if (!text.trim()) return;
+    personalChat.push({ from:'me', text: text.trim(), time: Date.now() });
+    state.personalChat = personalChat;
+    renderPersonalChat(); saveProgress();
+    setTimeout(() => {
+        const reply = generateEchoReply(text);
+        personalChat.push({ from:'her', text: reply, time: Date.now() });
+        state.personalChat = personalChat;
+        renderPersonalChat();
+        speak(reply, { pitch: 1.3, rate: 0.9 });
+        saveProgress();
+    }, 1000 + Math.random()*1000);
+}
+function generateEchoReply(text) {
+    const lower = text.toLowerCase().trim();
+    if (state.echoPendingTrigger) {
+        const trigger = STORY_TRIGGERS[state.echoPendingTrigger];
+        state.echoPendingTrigger = null;
+        return trigger.text;
+    }
+    for (const category in ECHO_FREE_REPLIES) {
+        if (category.endsWith('_replies')) continue;
+        const keywords = ECHO_FREE_REPLIES[category];
+        if (keywords.some(k => lower.includes(k))) {
+            return pickRandom(ECHO_FREE_REPLIES[category + '_replies']);
+        }
+    }
+    return pickRandom(ECHO_FREE_REPLIES.default);
+}
+function pickRandom(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+
+// ===== АНОМАЛИИ =====
+function logAnomaly(key, text) {
+    if (!state.anomalies) state.anomalies = [];
+    if (state.anomalies.some(a => a.key === key)) return;
+    state.anomalies.push({ key, text, date: Date.now() });
+    saveProgress();
+}
+function triggerGlitch() {
+    if (!renderer) return;
+    const canvas = renderer.domElement;
+    canvas.style.filter = 'invert(1)';
+    setTimeout(() => canvas.style.filter = '', 100);
+}
+
+// ===== КАТСЦЕНЫ =====
+const CUTSCENES = {
+    intro: [
+        { speaker:'🎬 Начало', leftChar:'🧑', rightChar:'🎮', text:'Ты стоишь в комнате. На столе — старенький ПК.' },
+        { speaker:'🧑 Ты', leftChar:'🧑', rightChar:'', text:'Сегодня — тот самый день. Я запускаю свой первый стрим!' }
+    ],
+    growth: [{ speaker:'👥 Первые 100', leftChar:'🧑', rightChar:'👥', text:'Первые 100 подписчиков!' }],
+    growth2: [{ speaker:'🔥 1000', leftChar:'🧑', rightChar:'🔥', text:'1000 подписчиков!' }],
+    growth3: [{ speaker:'🌟 10000', leftChar:'🧑', rightChar:'🌟', text:'10000! Ты — восходящая звезда.' }],
+    tg: [{ speaker:'📢 Telegram', leftChar:'🧑', rightChar:'📢', text:'Ты создал свой Telegram-канал!' }],
+    branch_choice: [{ speaker:'🎭 Выбор пути', leftChar:'🧑', rightChar:'🎭', text:'Пора выбрать свой путь.' }],
+    team: [{ speaker:'👥 Команда', leftChar:'🧑', rightChar:'🛡', text:'Первый человек в команде!' }],
+    business: [{ speaker:'💼 Бизнес', leftChar:'🧑', rightChar:'💼', text:'Ты открыл бизнес!' }],
+    family: [{ speaker:'💑 Любовь', leftChar:'🧑', rightChar:'💑', text:'Ты встретил того человека.' }],
+    mansion: [{ speaker:'🏰 Особняк', leftChar:'🧑', rightChar:'🏰', text:'Ты купил особняк!' }]
+};
+function showCutscene(key) {
+    const scene = CUTSCENES[key]; if (!scene) return;
+    let idx = 0;
+    const overlay = document.getElementById('cutsceneOverlay');
+    overlay.classList.add('open');
+    const render = () => {
+        const s = scene[idx];
+        document.getElementById('cutsceneSpeaker').textContent = s.speaker;
+        document.getElementById('cutsceneText').textContent = s.text;
+        document.getElementById('cutsceneCharLeft').textContent = s.leftChar || '';
+        document.getElementById('cutsceneCharRight').textContent = s.rightChar || '';
+        speak(s.text);
+        const btns = document.getElementById('cutsceneButtons'); btns.innerHTML = '';
+        const btn = document.createElement('button'); btn.className = 'cutscene-btn';
+        btn.textContent = idx === scene.length - 1 ? 'Завершить' : 'Далее →';
+        btn.onclick = () => {
+            idx++;
+            if (idx >= scene.length) { overlay.classList.remove('open'); checkStoryProgress(); }
+            else render();
+        };
+        btns.appendChild(btn);
+    };
+    render();
+}
+
+// ===== СЮЖЕТ =====
+const STORY_BRANCHES = {
+    tech: { name:'Технарь', icon:'💻', desc:'Фокус на оборудовании' },
+    showman: { name:'Шоумен', icon:'🎭', desc:'Фокус на харизме' },
+    businessman: { name:'Бизнесмен', icon:'💼', desc:'Фокус на бизнесах' },
+    normal: { name:'Обычный', icon:'🏠', desc:'Тёплый человеческий путь' },
+    tragic: { name:'Трагический', icon:'🌌', desc:'Матрица, правда, боль' }
+};
+const STORY = [
+    { chapter:0, act:1, title:'Первый стрим', icon:'🎬', desc:'Начни первый стрим', check:s=>s.streamsCount>=1, reward:{money:500,subs:50}, cutscene:'intro' },
+    { chapter:1, act:1, title:'Первые 100', icon:'👥', desc:'100 подписчиков', check:s=>s.subs>=100, reward:{money:1000,subs:100}, cutscene:'growth' },
+    { chapter:2, act:1, title:'Свой Telegram', icon:'📢', desc:'Создай TG-канал', check:s=>s.tgChannel.created, reward:{money:2000}, cutscene:'tg' },
+    { chapter:3, act:2, title:'Выбор пути', icon:'🎭', desc:'Выбери ветку', check:s=>s.story.branch!=='none', reward:{money:3000}, cutscene:'branch_choice' },
+    { chapter:4, act:2, title:'Команда', icon:'👥', desc:'Найди команду', check:s=>s.team.members.length>=1, reward:{money:4000}, cutscene:'team' },
+    { chapter:5, act:2, title:'1000 подписчиков', icon:'🔥', desc:'1000 подписчиков', check:s=>s.subs>=1000, reward:{money:10000,subs:500}, cutscene:'growth2' },
+    { chapter:6, act:2, title:'Первый бизнес', icon:'💼', desc:'Открой бизнес', check:s=>s.businesses.length>=1, reward:{money:8000}, cutscene:'business' },
+    { chapter:7, act:3, title:'10000 подписчиков', icon:'🌟', desc:'10000 подписчиков', check:s=>s.subs>=10000, reward:{money:30000,subs:2000}, cutscene:'growth3' },
+    { chapter:8, act:3, title:'Семья', icon:'💑', desc:'Заведи семью', check:s=>s.family.married, reward:{money:20000}, cutscene:'family' },
+    { chapter:9, act:3, title:'Особняк', icon:'🏰', desc:'Купи особняк', check:s=>s.housesOwned.includes('mansion'), reward:{money:50000}, cutscene:'mansion' }
+];
+function checkStoryProgress() {
+    const s = STORY[state.story.chapter];
+    if (s && s.check(state)) {
+        state.story.chapter++;
+        state.story.completed.push(s.chapter);
+        state.money += s.reward.money; state.totalEarned += s.reward.money;
+        if (s.reward.subs) state.subs += s.reward.subs;
+        saveProgress(); updateHUD();
+        toast(`📖 ${s.title}!`, 'win');
+        sfxWin();
+        setTimeout(() => showCutscene(s.cutscene), 1000);
+    }
+}
+function chooseBranch(key) {
+    state.story.branch = key;
+    saveProgress();
+    toast(`🎭 ${STORY_BRANCHES[key].name}`, 'win');
+    sfxWin();
+    renderStory();
+}
+function renderStory() {
+    const el = document.getElementById('storyBody'); if (!el) return;
+    el.innerHTML = '';
+    if (state.story.branch === 'none' && state.story.chapter >= 3) {
+        el.innerHTML += '<div class="section-title">🎭 Выбери ветку</div>';
+        for (const key in STORY_BRANCHES) {
+            const b = STORY_BRANCHES[key];
+            el.innerHTML += `<div class="upgrade-item"><div class="upgrade-info"><div class="upgrade-name">${b.icon} ${b.name}</div><div class="upgrade-desc">${b.desc}</div></div><button class="upgrade-btn buy" onclick="chooseBranch('${key}');">Выбрать</button></div>`;
+        }
+    }
+    if (state.story.branch !== 'none') {
+        const b = STORY_BRANCHES[state.story.branch];
+        el.innerHTML += `<div class="upgrade-item equipped"><div class="upgrade-info"><div class="upgrade-name">🎭 Ветка: ${b.icon} ${b.name}</div></div></div>`;
+    }
+    el.innerHTML += '<div class="section-title">📖 Основной сюжет</div>';
+    STORY.forEach(s => {
+        const done = state.story.completed.includes(s.chapter);
+        const active = state.story.chapter === s.chapter;
+        el.innerHTML += `<div class="upgrade-item ${done?'equipped':''}"><div class="upgrade-info"><div class="upgrade-name">${done?'✓':active?'▶':'🔒'} ${s.icon} ${s.title}</div><div class="upgrade-desc">${s.desc}</div></div></div>`;
+    });
+}
+
+// ===== ПРОКАЧКА =====
+const UPGRADES_INFO = {
+    pc:{name:'💻 Компьютер',desc:'Деньги',baseCost:200,costMul:1.5,maxLevel:100},
+    mic:{name:'🎤 Микрофон',desc:'Подписчики',baseCost:300,costMul:1.5,maxLevel:100},
+    camera:{name:'📷 Камера',desc:'Деньги',baseCost:400,costMul:1.5,maxLevel:100},
+    internet:{name:'🌐 Интернет',desc:'Стабильность',baseCost:250,costMul:1.4,maxLevel:100},
+    charisma:{name:'✨ Харизма',desc:'Всё',baseCost:600,costMul:1.6,maxLevel:100},
+    energy:{name:'🔋 Энергия',desc:'+25 макс.',baseCost:500,costMul:1.7,maxLevel:100},
+    editing:{name:'🎬 Монтаж',desc:'Видео',baseCost:800,costMul:1.5,maxLevel:100},
+    lighting:{name:'💡 Освещение',desc:'Картинка',baseCost:700,costMul:1.5,maxLevel:100},
+    marketing:{name:'📢 Маркетинг',desc:'Зрители',baseCost:1200,costMul:1.6,maxLevel:100}
+};
+function getUpgradeCost(key) {
+    const info = UPGRADES_INFO[key], lvl = state.upgrades[key] || 1;
+    return Math.floor(info.baseCost * Math.pow(info.costMul, lvl-1) * getDifficulty().priceMul);
+}
+function renderUpgrades() {
+    const b = document.getElementById('upgradesBody'); if (!b) return;
+    b.innerHTML = '';
+    for (const key in UPGRADES_INFO) {
+        const info = UPGRADES_INFO[key], lvl = state.upgrades[key]||1, max = info.maxLevel, cost = getUpgradeCost(key);
+        const isMax = lvl >= max, canAfford = state.money >= cost;
+        let btnText = isMax ? '✓ МАКС' : `${cost} 💰`;
+        const btnDis = isMax || !canAfford;
+        const pp = (lvl/max)*100;
+        b.innerHTML += `<div class="upgrade-item"><div class="upgrade-info"><div class="upgrade-name">${info.name}</div><div class="upgrade-desc">${info.desc} · ур. ${lvl}/${max}</div><div style="height:3px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:3px;overflow:hidden;"><div style="height:100%;background:linear-gradient(90deg,#667eea,#ff6b35);width:${pp}%;"></div></div></div><button class="upgrade-btn" ${btnDis?'disabled':''} onclick="buyUpgrade('${key}');">${btnText}</button></div>`;
+    }
+}
+function buyUpgrade(key) {
+    const info = UPGRADES_INFO[key], lvl = state.upgrades[key]||1;
+    if (lvl >= info.maxLevel) return;
+    const cost = getUpgradeCost(key);
+    if (state.money < cost) { toast('❌ Мало денег!', 'error'); return; }
+    state.money -= cost; state.upgrades[key] = lvl+1;
+    if (key === 'energy') state.maxEnergy = 100 + (state.upgrades.energy-1)*25;
+    addXP(20); sfxBuy(); toast(`⬆️ ${info.name}!`);
+    saveProgress(); updateHUD(); renderUpgrades();
+}
+
+// ===== КАСТОМИЗАЦИЯ =====
+const COLORS = [{hex:'#667eea'},{hex:'#ff6b35'},{hex:'#64ff96'},{hex:'#ff6496'},{hex:'#c864ff'},{hex:'#ffd700'},{hex:'#64c8ff'},{hex:'#ff4444'},{hex:'#ffffff'}];
+function renderCustomization() {
+    const cg = document.getElementById('colorGrid'); cg.innerHTML = '';
+    COLORS.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'custom-opt' + (state.bodyColor === c.hex ? ' selected' : '');
+        div.style.background = c.hex;
+        div.onclick = () => { state.bodyColor = c.hex; applyCustomization(); renderCustomization(); saveProgress(); };
+        cg.appendChild(div);
+    });
+}
+
+// ===== МАГАЗИН =====
+const FURNITURE_ITEMS = { plant:{name:'🌿 Растение',price:200}, poster:{name:'🖼️ Постер',price:400}, bookshelf:{name:'📚 Полка',price:1000}, lamp:{name:'💡 Лампа',price:600} };
+function renderShop() {
+    const fb = document.getElementById('shopBody'); if (!fb) return;
+    fb.innerHTML = '';
+    for (const fid in FURNITURE_ITEMS) {
+        const item = FURNITURE_ITEMS[fid], owned = state.furniture.includes(fid);
+        const price = Math.floor(item.price * getDifficulty().priceMul);
+        fb.innerHTML += `<div class="upgrade-item ${owned?'equipped':''}"><div class="upgrade-info"><div class="upgrade-name">${item.name}</div></div><button class="upgrade-btn ${owned?'equipped':'buy'}" ${owned?'disabled':''} onclick="buyFurniture('${fid}');">${owned?'✓':'Купить '+price+'💰'}</button></div>`;
+    }
+}
+function buyFurniture(fid) {
+    const item = FURNITURE_ITEMS[fid]; if (!item) return;
+    if (state.furniture.includes(fid)) return;
+    const price = Math.floor(item.price * getDifficulty().priceMul);
+    if (state.money < price) { toast('❌ Мало денег!', 'error'); return; }
+    state.money -= price; state.furniture.push(fid);
+    buildFurniture(); saveProgress(); updateHUD(); renderShop();
+    toast(`🪑 ${item.name}`);
+}
+
+// ===== ЖИЗНЬ =====
+function updateHealthBars() {
+    if (document.getElementById('healthEnergy')) {
+        document.getElementById('healthEnergy').textContent = Math.floor(state.energy);
+        document.getElementById('healthEnergyBar').style.width = (state.energy/state.maxEnergy*100) + '%';
+        document.getElementById('healthHunger').textContent = Math.floor(state.hunger);
+        document.getElementById('healthHungerBar').style.width = state.hunger + '%';
+        document.getElementById('healthSleep').textContent = Math.floor(state.sleep);
+        document.getElementById('healthSleepBar').style.width = state.sleep + '%';
+    }
+}
+
+// ===== ПРОФИЛЬ =====
+function renderProfile() {
+    document.getElementById('profileNickInput').value = state.nick;
+    document.getElementById('profileStats').innerHTML = `
+        <div class="stat-bar"><div class="stat-bar-label"><span>⭐ Уровень</span><b>${state.level}</b></div></div>
+        <div class="stat-bar"><div class="stat-bar-label"><span>🎖 Рейтинг</span><b>${state.rating}</b></div></div>
+        <div class="stat-bar"><div class="stat-bar-label"><span>💰 Заработано</span><b>${fmt(state.totalEarned)}</b></div></div>
+        <div class="stat-bar"><div class="stat-bar-label"><span>👥 Подписчиков</span><b>${fmt(state.totalSubs)}</b></div></div>
+        <div class="stat-bar"><div class="stat-bar-label"><span>📺 Стримов</span><b>${state.streamsCount}</b></div></div>
+        <div class="stat-bar"><div class="stat-bar-label"><span>📖 Сюжет</span><b>${state.story.chapter} / ${STORY.length}</b></div></div>
+        <div class="stat-bar"><div class="stat-bar-label"><span>🎭 Ветка</span><b>${state.story.branch==='none'?'—':STORY_BRANCHES[state.story.branch].name}</b></div></div>
+        <div class="stat-bar"><div class="stat-bar-label"><span>🌌 Аномалий</span><b>${state.anomalies?.length||0}</b></div></div>
+    `;
+}
+function saveProfileNick() {
+    const v = document.getElementById('profileNickInput').value.trim();
+    if (!v) { toast('❌ Введи ник', 'error'); return; }
+    state.nick = v.slice(0, 16); saveProgress(); updateHUD(); toast(`🎭 ${state.nick}`, 'win');
+}
+
+// ===== ПК =====
+function openPC() {
+    document.getElementById('pcScreen').classList.add('open');
+    document.getElementById('pcMoney').textContent = fmt(state.money);
+}
+function closePC() { document.getElementById('pcScreen').classList.remove('open'); document.querySelectorAll('.pc-window').forEach(w => w.classList.remove('open')); }
+function openPCApp(name) {
+    document.querySelectorAll('.pc-window').forEach(w => w.classList.remove('open'));
+    const w = document.getElementById('pc-window-' + name);
+    if (w) w.classList.add('open');
+    if (name === 'stats') renderPCStats();
+    if (name === 'notes') document.getElementById('pcNotes').value = state.notes || '';
+    if (name === 'oldchannel') renderOldChannel();
+}
+function closePCApp(name) { const w = document.getElementById('pc-window-' + name); if (w) w.classList.remove('open'); }
+function renderPCStats() {
+    const b = document.getElementById('pcStatsBody'); if (!b) return;
+    b.innerHTML = `<div class="stat-bar"><div class="stat-bar-label"><span>📺 Стримов</span><b>${state.streamsCount}</b></div></div><div class="stat-bar"><div class="stat-bar-label"><span>👁 Просмотров</span><b>${fmt(state.totalViews)}</b></div></div><div class="stat-bar"><div class="stat-bar-label"><span>💰 Заработано</span><b>${fmt(state.totalEarned)}</b></div></div>`;
+}
+function saveNotes() { state.notes = document.getElementById('pcNotes').value; saveProgress(); toast('📝 Сохранено'); }
+function saveStreamSettings() {
+    state.streamTitle = document.getElementById('streamTitle').value || 'Мой стрим';
+    saveProgress(); toast('📺 Сохранено!', 'win');
+}
+function renderOldChannel() {
+    const el = document.getElementById('pcOldChannelBody'); if (!el) return;
+    el.innerHTML = `
+        <div class="section-title">📺 ${state.famousName} — Вечная память</div>
+        <div class="upgrade-item equipped"><div class="upgrade-info"><div class="upgrade-name">👥 ${fmt(state.oldChannel.subscribers)} подписчиков</div><div class="upgrade-desc">🎬 ${state.oldChannel.videos} видео</div><div class="upgrade-desc" style="color:#64c8ff;font-style:italic;">⚙️ Выкладывает: Симуляция</div></div></div>
+        <div class="section-title">💬 Комментарии</div>
+        <div style="font-size:11px;color:#c0c0d0;line-height:1.8;"><div>🌟 FanBoy: «Мы скучаем. Но мы помним.»</div><div>🌟 Legend: «Твои стримы — наше детство.»</div><div>🌟 TrueFan: «Спасибо, что был с нами.»</div></div>
+    `;
+}
+
+// ===== МИНИ-ИГРЫ =====
+function openRandomMinigame() {
+    if (!state.isStreaming) { toast('❌ Только на стриме!', 'error'); return; }
+    const types = ['memory','math','reaction'];
+    startMinigame(types[Math.floor(Math.random()*types.length)]);
+}
+function startMinigame(type) {
+    minigameActive = true; minigameType = type; minigameState = {};
+    document.getElementById('minigameOverlay').classList.add('open');
+    const tE = document.getElementById('mgTitle'), dE = document.getElementById('mgDesc'), tmE = document.getElementById('mgTimer'), pE = document.getElementById('mgProgress'), bE = document.getElementById('mgBoard');
+    bE.innerHTML = ''; pE.innerHTML = ''; tmE.textContent = '⏱ 30';
+    let timeLeft = 30;
+    if (minigameTimer) clearInterval(minigameTimer);
+    minigameTimer = setInterval(() => { timeLeft--; tmE.textContent = '⏱ ' + timeLeft; if (timeLeft <= 0) endMinigame(false); }, 1000);
+    const games = { memory:['🧠 Память','Найди пары!',startMemoryGame], math:['🔢 Математика','Реши!',startMathGame], reaction:['⚡ Реакция','Жми!',startReactionGame] };
+    const g = games[type]; if (!g) { endMinigame(false); return; }
+    tE.textContent = g[0]; dE.textContent = g[1]; g[2](bE, pE);
+}
+function startMemoryGame(b, p) {
+    const s = ['🎮','🎯','🎨','🎵','⚡','🔥'];
+    const c = [...s, ...s].sort(() => Math.random()-0.5);
+    minigameState = { cards:c, flipped:[], matched:0, locked:false };
+    b.style.gridTemplateColumns = 'repeat(4, 1fr)'; b.style.maxWidth = '320px'; b.innerHTML = '';
+    c.forEach((sym, i) => {
+        const cell = document.createElement('div'); cell.className = 'mg-cell';
+        cell.textContent = '?'; cell.style.height = '60px'; cell.dataset.symbol = sym;
+        cell.onclick = () => {
+            const st = minigameState;
+            if (st.locked || cell.classList.contains('correct') || st.flipped.length >= 2) return;
+            cell.textContent = st.cards[i];
+            st.flipped.push({ cell, i });
+            if (st.flipped.length === 2) {
+                st.locked = true;
+                const [a, bb] = st.flipped;
+                if (a.cell.dataset.symbol === bb.cell.dataset.symbol) {
+                    setTimeout(() => { a.cell.classList.add('correct'); bb.cell.classList.add('correct'); st.matched++; st.flipped = []; st.locked = false; p.innerHTML = `Найдено: <b>${st.matched} / 6</b>`; if (st.matched === 6) endMinigame(true); }, 300);
+                } else {
+                    setTimeout(() => { a.cell.textContent = '?'; bb.cell.textContent = '?'; st.flipped = []; st.locked = false; }, 700);
+                }
+            }
+        };
+        b.appendChild(cell);
+    });
+    p.innerHTML = 'Найдено: <b>0 / 6</b>';
+}
+function startMathGame(b, p) {
+    minigameState = { solved:0 };
+    b.style.gridTemplateColumns = 'repeat(2, 1fr)'; b.style.maxWidth = '340px'; b.innerHTML = '';
+    const next = () => {
+        if (!minigameActive) return;
+        b.innerHTML = '';
+        const a = Math.floor(Math.random()*20)+1, bb = Math.floor(Math.random()*20)+1;
+        const op = ['+','-','×'][Math.floor(Math.random()*3)];
+        let ans = op==='+'?a+bb:op==='-'?a-bb:a*bb;
+        const opts = [ans];
+        while (opts.length < 4) { const f = ans + (Math.floor(Math.random()*20)-10); if (f !== ans && !opts.includes(f)) opts.push(f); }
+        opts.sort(() => Math.random()-0.5);
+        const q = document.createElement('div');
+        q.style.cssText = 'grid-column:1/-1;font-size:24px;font-weight:900;text-align:center;padding:12px;background:rgba(102,126,234,0.2);border-radius:8px;';
+        q.textContent = `${a} ${op} ${bb} = ?`; b.appendChild(q);
+        opts.forEach(o => {
+            const c = document.createElement('div'); c.className = 'mg-cell'; c.textContent = o; c.style.height = '50px';
+            c.onclick = () => { if (o === ans) { c.classList.add('correct'); minigameState.solved++; p.innerHTML = `Решено: <b>${minigameState.solved}</b>`; setTimeout(next, 300); } else { c.classList.add('wrong'); setTimeout(() => c.classList.remove('wrong'), 400); } };
+            b.appendChild(c);
+        });
+    };
+    next();
+}
+function startReactionGame(b, p) {
+    minigameState = { hits:0 };
+    b.style.gridTemplateColumns = 'repeat(3, 1fr)'; b.style.maxWidth = '280px'; b.innerHTML = '';
+    const spawnTarget = (board) => {
+        if (!minigameActive) return;
+        const cells = Array.from(board.querySelectorAll('.mg-cell'));
+        const free = cells.filter(c => c.dataset.active !== '1');
+        if (free.length === 0) return;
+        const t = free[Math.floor(Math.random()*free.length)];
+        t.dataset.active = '1'; t.style.background = 'linear-gradient(135deg, #64ff96, #00a050)';
+        setTimeout(() => { if (t.dataset.active === '1' && minigameActive) { t.dataset.active = '0'; t.style.background = ''; spawnTarget(board); } }, 1500);
+    };
+    for (let i = 0; i < 9; i++) {
+        const c = document.createElement('div'); c.className = 'mg-cell'; c.style.height = '70px';
+        c.onclick = () => { if (c.dataset.active === '1') { c.dataset.active = '0'; c.style.background = ''; minigameState.hits++; p.innerHTML = `Попаданий: <b>${minigameState.hits}</b>`; spawnTarget(b); } };
+        b.appendChild(c);
+    }
+    p.innerHTML = 'Попаданий: <b>0</b>';
+    spawnTarget(b);
+}
+function endMinigame(completed) {
+    if (!minigameActive) return;
+    minigameActive = false; clearInterval(minigameTimer);
+    let score = 0;
+    if (minigameType === 'memory') score = minigameState.matched * 20;
+    else if (minigameType === 'math') score = minigameState.solved * 15;
+    else if (minigameType === 'reaction') score = minigameState.hits * 10;
+    if (completed) score += 30;
+    if (score > 0) {
+        const mb = Math.floor(score*2), sb = Math.floor(score/20);
+        state.money += mb; state.subs += sb;
+        state.minigamesPlayed++;
+        addXP(Math.floor(score/3)); saveProgress(); updateHUD();
+        toast(`🎮 +${mb}💰 +${sb}👥`, 'win');
+    }
+    document.getElementById('minigameOverlay').classList.remove('open');
+}
+function closeMinigame(e) {
+    if (e && e.target !== e.currentTarget && e.target.className !== 'mg-close-btn') return;
+    if (minigameActive) { minigameActive = false; clearInterval(minigameTimer); }
+    document.getElementById('minigameOverlay').classList.remove('open');
+}
+
+// ===== ПАНЕЛИ =====
+function openPanel(name) {
+    document.querySelectorAll('.panel-overlay').forEach(p => p.classList.remove('open'));
+    const p = document.getElementById('panel-' + name);
+    if (p) {
+        p.classList.add('open');
+        if (name === 'upgrades') renderUpgrades();
+        if (name === 'custom') renderCustomization();
+        if (name === 'shop') renderShop();
+        if (name === 'life') updateHealthBars();
+        if (name === 'story') renderStory();
+        if (name === 'profile') renderProfile();
+    }
+}
+function closePanel(name, e) { if (e && e.target !== e.currentTarget) return; const p = document.getElementById('panel-' + name); if (p) p.classList.remove('open'); }
+
+// ===== АДМИН =====
+function watermarkClick() {
+    wmClicks++;
+    clearTimeout(wmTimer);
+    wmTimer = setTimeout(() => { wmClicks = 0; }, 1000);
+    if (wmClicks >= 2) { wmClicks = 0; openAdminLogin(); }
+}
+function openAdminLogin() { document.getElementById('adminLogin').classList.add('open'); document.getElementById('adminPassword').value = ''; document.getElementById('adminError').textContent = ''; }
+function closeAdminLogin() { document.getElementById('adminLogin').classList.remove('open'); }
+function checkAdminPassword() {
+    const p = document.getElementById('adminPassword').value;
+    if (p === ADMIN_PASSWORD) { closeAdminLogin(); openAdminPanel(); }
+    else document.getElementById('adminError').textContent = 'Неверный пароль! ❌';
+}
+function openAdminPanel() {
+    document.getElementById('adminPanel').classList.add('open');
+    document.getElementById('adminMoney').value = state.money;
+    document.getElementById('adminSubs').value = state.subs;
+    document.getElementById('adminLevel').value = state.level;
+}
+function closeAdminPanel() { document.getElementById('adminPanel').classList.remove('open'); }
+function adminSetMoney() { const v = parseInt(document.getElementById('adminMoney').value); if (isNaN(v)||v<0) return; state.money = v; saveProgress(); updateHUD(); }
+function adminSetSubs() { const v = parseInt(document.getElementById('adminSubs').value); if (isNaN(v)||v<0) return; state.subs = v; saveProgress(); updateHUD(); }
+function adminSetLevel() { const v = parseInt(document.getElementById('adminLevel').value); if (isNaN(v)||v<1||v>50) return; state.level = v; saveProgress(); updateHUD(); }
+
+// ===== ГИД =====
+const GUIDE = [
+    { icon:'👋', title:'Добро пожаловать!', text:'v13.0 ECHO OF FATES — сюжет, трагедия, любовь, выбор.' },
+    { icon:'🎮', title:'Управление', text:'WASD — ходить. Клик по полу — идти. Мышь — камера. Клик по монитору — ПК.' },
+    { icon:'📖', title:'Сюжет', text:'В 3-й главе выберешь ветку.' },
+    { icon:'🚀', title:'Поехали!', text:'Нажми «Поехали!» и наслаждайся!' }
+];
+function openGuide() { guideIndex = 0; renderGuide(); document.getElementById('guideOverlay').classList.add('open'); }
+function closeGuide() { document.getElementById('guideOverlay').classList.remove('open'); state.hasSeenGuide = true; saveProgress(); }
+function guideNext() { if (guideIndex < GUIDE.length-1) { guideIndex++; renderGuide(); } else closeGuide(); }
+function guidePrev() { if (guideIndex > 0) { guideIndex--; renderGuide(); } }
+function renderGuide() {
+    const g = GUIDE[guideIndex];
+    document.getElementById('guideIcon').textContent = g.icon;
+    document.getElementById('guideTitle').textContent = g.title;
+    document.getElementById('guideText').textContent = g.text;
+    document.getElementById('guideNext').textContent = guideIndex === GUIDE.length-1 ? 'Поехали! 🚀' : 'Далее →';
+    document.getElementById('guidePrev').style.display = guideIndex === 0 ? 'none' : 'inline-block';
+}
+
+// ===== ТИКИ =====
+setInterval(() => { if (gameStarted) saveProgress(); }, 5000);
+setInterval(() => {
+    if (!gameStarted) return;
+    checkStoryProgress();
+    if (state.isStreaming) {
+        if (Math.random() < 0.4) spawnDonate();
+        if (Math.random() < 0.3) spawnChatMessage();
+        if (Math.random() < 0.05) {
+            const anomalies = [
+                { key:'chat_sync', text:'Трое зрителей написали "GG" одновременно' },
+                { key:'donate_midnight', text:'Донат от «Алекс» ровно в 00:00' },
+                { key:'user47_thought', text:'user_47 написал твою мысль за секунду до тебя' }
+            ];
+            const a = anomalies[Math.floor(Math.random()*anomalies.length)];
+            logAnomaly(a.key, a.text);
+            triggerGlitch();
+        }
+    }
+}, 15000);
+
+function hideSplash() {
+    document.getElementById('splash').classList.add('hidden');
+    setTimeout(() => showMainMenu(), 300);
+    initAudio();
+    setTimeout(() => { sfx(523, 100, 'sine', 0.2); setTimeout(() => sfx(659, 100, 'sine', 0.2), 100); setTimeout(() => sfx(784, 200, 'sine', 0.2), 200); }, 300);
+}
+window.addEventListener('load', () => {
+    if (typeof THREE === 'undefined') toast('❌ Three.js не загрузился', 'error');
+    document.getElementById('adminPassword').addEventListener('keydown', e => { if (e.key === 'Enter') checkAdminPassword(); });
+});
+window.addEventListener('beforeunload', () => { if (gameStarted && currentSlot) saveProgress(); });
+</script>
+</body>
+</html>
